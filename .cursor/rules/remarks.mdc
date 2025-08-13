@@ -1,0 +1,12 @@
+---
+description: 注意事项
+globs:
+alwaysApply: true
+---
+
+- 服务端项目基于`NestJS`框架开发。
+- NestJS应用已经将默认的Express平台切换到了Fastify平台。
+- 项目的Logger没有使用NestJS内置的Logger，而是使用了一个自定义的`PinoLogger`，具体代码在`libs/pino-nestjs/src`。
+- 本项目没有采用传统的CRUD架构，而是采用了CQRS架构。
+- 单元测试文件应当放置在被测试文件的同级目录下。
+- 集成测试和e2e测试代码不应放在`src`目录下，应当建立与`src`同级的`test`目录来管理集成测试和e2e测试代码。

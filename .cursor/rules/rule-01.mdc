@@ -9,37 +9,37 @@ alwaysApply: true
 - 你在编写代码时，应当按照TSDoc规范添加注释，并写入代码的原理与机制。示例：
 ```ts
 import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
 
 /**
  * @function bootstrap
  * @description
- * 启动NestJS应用的主函数。该函数负责创建应用实例、配置全局功能（如版本控制、全局校验管道、日志系统等），
- * 并监听指定端口启动服务。
+ * 启动NestJS应用的主函数。该函数负责创建基于Fastify平台的应用实例，
+ * 并监听指定端口启动高性能HTTP服务。
  * 
  * 主要原理与机制如下：
- * 1. 通过NestFactory.create创建应用实例，并开启日志缓冲（bufferLogs: true），
- *    这样可以在Logger初始化前缓存日志，避免日志丢失。
- * 2. enableVersioning方法启用API版本控制，采用URI方式（如/v1/xxx），
- *    并设置默认版本为'1'，便于API的向后兼容与演进。
+ * 1. 通过NestFactory.create创建应用实例，使用FastifyAdapter作为HTTP适配器，
+ *    Fastify是一个高性能的Node.js web框架，相比Express具有更好的性能表现。
+ * 2. FastifyAdapter提供了Fastify与NestJS的集成，使得NestJS可以充分利用
+ *    Fastify的高性能特性，如更快的路由匹配、更低的延迟等。
  * 3. 最后通过listen方法监听环境变量PORT指定的端口（默认3000），启动HTTP服务。
+ * 
+ * @returns {Promise<void>} 返回一个Promise，表示应用启动过程
  */
 async function bootstrap() {
-  // 创建Nest应用实例，并开启日志缓冲
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
-
-  // 启用基于URI的API版本控制，默认版本为1
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
+  // 创建基于Fastify的Nest应用实例
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter()
+  );
 
   // 启动HTTP服务，监听指定端口
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 
 // 启动应用
 bootstrap();
+
 ```
 - 每完成一个文件的编写应当及时检查和修复代码错误

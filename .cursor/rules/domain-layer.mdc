@@ -1,0 +1,21 @@
+---
+description: Domain Layer
+globs:
+alwaysApply: true
+---
+
+- 本项目使用NestJS作为基础框架，基于领域驱动开发（DDD）和整洁架构（Clean Architecture）组织开发。
+- 领域层（Domain Layer）开发应当执行以下约定：
+  - 职责：  
+    - 封装核心业务逻辑和规则。  
+    - 定义领域模型（实体、值对象、聚合根）。
+    - 处理领域事件和业务状态变更。
+  - 主要内容：  
+    - entities/：领域实体（如 Permission）。  
+    - value-objects/：不可变的值对象（如 PermissionName）。  
+    - repositories/：仓储接口（定义数据访问抽象）。  
+    - services/：领域服务（跨实体的业务逻辑）。  
+    - events/：领域事件（如 PermissionCreatedEvent）。  
+    - 不依赖其他层，保持纯净。
+  - 注意事项：
+    - 领域实体必须是纯领域实体，不能与任何数据库和ORM耦合
