@@ -94,9 +94,6 @@ export class RequestContextService implements IRequestContextService {
       // 如果安全上下文不存在，创建一个默认的
       const defaultContext: SecurityContext = {
         authenticated: false,
-        securityLevel: 'low',
-        riskScore: 0,
-        securityEvents: [],
       };
       this.setSecurityContext(defaultContext);
       return defaultContext;
@@ -121,6 +118,7 @@ export class RequestContextService implements IRequestContextService {
         dbQueryTime: 0,
         cacheHits: 0,
         cacheMisses: 0,
+        cacheTime: 0,
         externalApiCalls: 0,
         externalApiTime: 0,
         memoryUsage: 0,
@@ -221,7 +219,7 @@ export class RequestContextService implements IRequestContextService {
    */
   clear(): void {
     Object.values(RequestContextService.CONTEXT_KEYS).forEach(key => {
-      this.cls.delete(key);
+      this.cls.set(key, undefined);
     });
   }
 
@@ -300,64 +298,108 @@ export class RequestContextService implements IRequestContextService {
   }
 
   /**
-   * @method incrementDbQueries
-   * @description 增加数据库查询计数
-   * @param {number} time 查询时间（毫秒）
-   * @returns {void}
+   * @method getSessionId
+   * @description 获取会话ID
+   * @returns {string | undefined} 会话ID
    */
-  incrementDbQueries(time: number = 0): void {
+  getSessionId(): string | undefined {
+    return this.getRequestContext().sessionId;
+  }
+
+  /**
+   * @method incrementDbQueries
+   * @description 增加数据库查询次数
+   * @param {number} count 增加的数量
+   */
+  incrementDbQueries(count: number = 1): void {
     const performance = this.getPerformanceContext();
-    performance.dbQueries++;
-    performance.dbQueryTime += time;
+    performance.dbQueries += count;
     this.setPerformanceContext(performance);
   }
 
   /**
    * @method incrementCacheHits
-   * @description 增加缓存命中计数
-   * @returns {void}
+   * @description 增加缓存命中次数
+   * @param {number} count 增加的数量
    */
-  incrementCacheHits(): void {
+  incrementCacheHits(count: number = 1): void {
     const performance = this.getPerformanceContext();
-    performance.cacheHits++;
+    performance.cacheHits += count;
     this.setPerformanceContext(performance);
   }
 
   /**
    * @method incrementCacheMisses
-   * @description 增加缓存未命中计数
-   * @returns {void}
+   * @description 增加缓存未命中次数
+   * @param {number} count 增加的数量
    */
-  incrementCacheMisses(): void {
+  incrementCacheMisses(count: number = 1): void {
     const performance = this.getPerformanceContext();
-    performance.cacheMisses++;
+    performance.cacheMisses += count;
     this.setPerformanceContext(performance);
   }
 
   /**
-   * @method incrementExternalApiCalls
-   * @description 增加外部API调用计数
-   * @param {number} time 调用时间（毫秒）
-   * @returns {void}
+   * @method addDbQueryTime
+   * @description 添加数据库查询时间
+   * @param {number} time 查询时间（毫秒）
    */
-  incrementExternalApiCalls(time: number = 0): void {
+  addDbQueryTime(time: number): void {
     const performance = this.getPerformanceContext();
-    performance.externalApiCalls++;
+    performance.dbQueryTime += time;
+    this.setPerformanceContext(performance);
+  }
+
+  /**
+   * @method addCacheTime
+   * @description 添加缓存操作时间
+   * @param {number} time 操作时间（毫秒）
+   */
+  addCacheTime(time: number): void {
+    const performance = this.getPerformanceContext();
+    performance.cacheTime += time;
+    this.setPerformanceContext(performance);
+  }
+
+  /**
+   * @method addExternalApiTime
+   * @description 添加外部API调用时间
+   * @param {number} time 调用时间（毫秒）
+   */
+  addExternalApiTime(time: number): void {
+    const performance = this.getPerformanceContext();
     performance.externalApiTime += time;
     this.setPerformanceContext(performance);
   }
 
   /**
-   * @method addSecurityEvent
-   * @description 添加安全事件
-   * @param {string} event 安全事件
-   * @returns {void}
+   * @method setResponseTime
+   * @description 设置响应时间
+   * @param {number} time 响应时间（毫秒）
    */
-  addSecurityEvent(event: string): void {
-    const security = this.getSecurityContext();
-    security.securityEvents.push(event);
-    this.setSecurityContext(security);
+  setResponseTime(time: number): void {
+    this.setRequestContext({ responseTime: time });
   }
+
+  /**
+   * @method setStatusCode
+   * @description 设置响应状态码
+   * @param {number} statusCode 状态码
+   */
+  setStatusCode(statusCode: number): void {
+    this.setRequestContext({ statusCode });
+  }
+
+  /**
+   * @method setError
+   * @description 设置错误信息
+   * @param {Error} error 错误对象
+   */
+  setError(error: Error): void {
+    this.setRequestContext({ error });
+  }
+
+
 
   /**
    * @method setMetadata

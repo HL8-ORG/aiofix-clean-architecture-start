@@ -172,16 +172,16 @@ describe('RequestContextService', () => {
 
   describe('clear', () => {
     it('should clear all context keys', () => {
-      jest.spyOn(clsService, 'delete').mockImplementation(() => { });
+      jest.spyOn(clsService, 'set').mockImplementation(() => { });
 
       service.clear();
 
-      expect(clsService.delete).toHaveBeenCalledWith('request');
-      expect(clsService.delete).toHaveBeenCalledWith('tenant');
-      expect(clsService.delete).toHaveBeenCalledWith('user');
-      expect(clsService.delete).toHaveBeenCalledWith('security');
-      expect(clsService.delete).toHaveBeenCalledWith('performance');
-      expect(clsService.delete).toHaveBeenCalledWith('audit');
+      expect(clsService.set).toHaveBeenCalledWith('request', undefined);
+      expect(clsService.set).toHaveBeenCalledWith('tenant', undefined);
+      expect(clsService.set).toHaveBeenCalledWith('user', undefined);
+      expect(clsService.set).toHaveBeenCalledWith('security', undefined);
+      expect(clsService.set).toHaveBeenCalledWith('performance', undefined);
+      expect(clsService.set).toHaveBeenCalledWith('audit', undefined);
     });
   });
 
@@ -263,11 +263,10 @@ describe('RequestContextService', () => {
     });
 
     it('should increment database queries', () => {
-      service.incrementDbQueries(100);
+      service.incrementDbQueries(1);
 
       expect(clsService.set).toHaveBeenCalledWith('performance', expect.objectContaining({
         dbQueries: 1,
-        dbQueryTime: 100,
       }));
     });
 
@@ -287,11 +286,10 @@ describe('RequestContextService', () => {
       }));
     });
 
-    it('should increment external API calls', () => {
-      service.incrementExternalApiCalls(200);
+    it('should add external API time', () => {
+      service.addExternalApiTime(200);
 
       expect(clsService.set).toHaveBeenCalledWith('performance', expect.objectContaining({
-        externalApiCalls: 1,
         externalApiTime: 200,
       }));
     });

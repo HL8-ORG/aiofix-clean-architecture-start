@@ -41,6 +41,8 @@ export interface RequestContext {
   headers?: Record<string, string>;
   /** 请求参数 */
   params?: Record<string, any>;
+  /** 查询参数 */
+  query?: Record<string, any>;
   /** 请求体 */
   body?: any;
   /** 响应状态码 */

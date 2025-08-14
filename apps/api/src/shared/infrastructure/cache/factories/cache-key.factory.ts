@@ -14,6 +14,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { ICacheKeyFactory, CacheKey } from '../interfaces/cache.interface';
+import { minimatch } from 'minimatch';
 
 /**
  * @class CacheKeyFactory
@@ -45,7 +46,7 @@ export class CacheKeyFactory implements ICacheKeyFactory {
     return {
       key: this.sanitizeKey(key),
       namespace: options?.namespace,
-      version: options?.version || this.DEFAULT_VERSION,
+      version: options?.version,
       tenantId: options?.tenantId,
       userId: options?.userId,
       tags: options?.tags || [],
@@ -121,7 +122,7 @@ export class CacheKeyFactory implements ICacheKeyFactory {
   toString(cacheKey: CacheKey): string {
     const parts: string[] = [];
 
-    // 添加版本号
+    // 添加版本号（只有当明确指定时才添加）
     if (cacheKey.version) {
       parts.push(cacheKey.version);
     }
@@ -175,30 +176,40 @@ export class CacheKeyFactory implements ICacheKeyFactory {
 
     // 解析命名空间（如果存在且不是特殊前缀）
     if (currentIndex < parts.length &&
-      !parts[currentIndex].startsWith('tenant:') &&
-      !parts[currentIndex].startsWith('user:') &&
-      !parts[currentIndex].startsWith('tags:')) {
+      parts[currentIndex] !== 'tenant' &&
+      parts[currentIndex] !== 'user' &&
+      parts[currentIndex] !== 'tags' &&
+      currentIndex < parts.length - 1) { // 确保不是最后一个部分（键名）
       cacheKey.namespace = parts[currentIndex];
       currentIndex++;
     }
 
     // 解析租户ID
-    if (currentIndex < parts.length && parts[currentIndex].startsWith('tenant:')) {
-      cacheKey.tenantId = parts[currentIndex].substring(7);
-      currentIndex++;
+    if (currentIndex < parts.length && parts[currentIndex] === 'tenant') {
+      currentIndex++; // 跳过 'tenant'
+      if (currentIndex < parts.length) {
+        cacheKey.tenantId = parts[currentIndex];
+        currentIndex++;
+      }
     }
 
     // 解析用户ID
-    if (currentIndex < parts.length && parts[currentIndex].startsWith('user:')) {
-      cacheKey.userId = parts[currentIndex].substring(5);
-      currentIndex++;
+    if (currentIndex < parts.length && parts[currentIndex] === 'user') {
+      currentIndex++; // 跳过 'user'
+      if (currentIndex < parts.length) {
+        cacheKey.userId = parts[currentIndex];
+        currentIndex++;
+      }
     }
 
     // 解析标签
-    if (currentIndex < parts.length && parts[currentIndex].startsWith('tags:')) {
-      const tagsString = parts[currentIndex].substring(5);
-      cacheKey.tags = tagsString.split(',').filter(tag => tag.length > 0);
-      currentIndex++;
+    if (currentIndex < parts.length && parts[currentIndex] === 'tags') {
+      currentIndex++; // 跳过 'tags'
+      if (currentIndex < parts.length) {
+        const tagsString = parts[currentIndex];
+        cacheKey.tags = tagsString.split(',').filter(tag => tag.length > 0);
+        currentIndex++;
+      }
     }
 
     // 剩余部分作为基础键名
@@ -217,8 +228,39 @@ export class CacheKeyFactory implements ICacheKeyFactory {
    * @returns 模式键
    */
   createPattern(pattern: string, options?: Partial<CacheKey>): string {
-    const cacheKey = this.create(pattern, options);
-    return this.toString(cacheKey).replace(/\*/g, '*');
+    const parts: string[] = [];
+
+    // 添加版本号
+    if (options?.version) {
+      parts.push(options.version);
+    } else {
+      parts.push(this.DEFAULT_VERSION);
+    }
+
+    // 添加命名空间
+    if (options?.namespace) {
+      parts.push(this.sanitizeNamespace(options.namespace));
+    }
+
+    // 添加租户ID
+    if (options?.tenantId) {
+      parts.push(`tenant:${this.sanitizeId(options.tenantId)}`);
+    }
+
+    // 添加用户ID
+    if (options?.userId) {
+      parts.push(`user:${this.sanitizeId(options.userId)}`);
+    }
+
+    // 添加标签
+    if (options?.tags && options.tags.length > 0) {
+      parts.push(`tags:${this.sanitizeTags(options.tags).sort().join(',')}`);
+    }
+
+    // 添加模式（不清理特殊字符）
+    parts.push(pattern);
+
+    return parts.join(this.DEFAULT_SEPARATOR);
   }
 
   /**
@@ -230,13 +272,9 @@ export class CacheKeyFactory implements ICacheKeyFactory {
    */
   matchPattern(key: CacheKey, pattern: string): boolean {
     const keyString = this.toString(key);
-    const regexPattern = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.');
 
-    const regex = new RegExp(`^${regexPattern}$`);
-    return regex.test(keyString);
+    // 使用 minimatch 进行模式匹配
+    return minimatch(keyString, pattern);
   }
 
   /**
