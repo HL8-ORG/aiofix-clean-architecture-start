@@ -1,7 +1,7 @@
 ---
 description: Domain Layer
 globs:
-alwaysApply: true
+alwaysApply: false
 ---
 
 - 本项目使用NestJS作为基础框架，基于领域驱动开发（DDD）和整洁架构（Clean Architecture）组织开发。

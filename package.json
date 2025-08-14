@@ -7,7 +7,12 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "install:deps": "./scripts/install-dependencies.sh",
+    "start:dev": "./scripts/start-dev.sh",
+    "api:dev": "cd apps/api && pnpm run start:dev",
+    "api:build": "cd apps/api && pnpm run build",
+    "api:test": "cd apps/api && pnpm test"
   },
   "config": {
     "commitizen": {

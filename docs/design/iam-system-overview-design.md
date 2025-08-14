@@ -223,7 +223,7 @@
 
 ### 3.2 核心领域划分
 
-#### 3.2.1 租户管理领域 (Tenant Management Domain)
+#### 3.2.1 租户领域 (Tenants Domain)
 
 **领域职责**：
 - 租户生命周期管理
@@ -231,6 +231,13 @@
 - 租户配置和域名管理
 - 租户状态管理
 - 租户事件溯源
+
+**子领域划分**：
+- **management**: 租户的 CRUD 操作、状态管理
+- **billing**: 租户计费、套餐管理、支付处理
+- **settings**: 租户配置、个性化设置
+- **applications**: 租户申请管理 ⭐ 新增
+- **tenant-change**: 租户变更管理 ⭐ 新增
 
 **核心概念**：
 - **聚合根**: Tenant、TenantApplication、TenantDomainChangeApplication
@@ -248,27 +255,32 @@
 - 所有租户操作都通过事件记录
 - 支持租户状态历史追踪
 
-#### 3.2.2 用户管理领域 (User Management Domain)
+#### 3.2.2 用户领域 (Users Domain)
 
 **领域职责**：
-- 用户生命周期管理
-- 用户注册和激活
-- 用户个人信息管理
-- 用户状态管理
+- 用户基本信息管理
+- 用户档案管理
+- 用户偏好设置
 - 用户事件溯源
+
+**子领域划分**：
+- **management**: 用户的 CRUD 操作、状态管理
+- **profiles**: 用户档案、个人信息
+- **preferences**: 用户偏好设置、个性化配置
+- **registration**: 用户注册、账户创建 ⭐ 新增
+- **tenant-change**: 用户租户变更管理 ⭐ 新增
 
 **核心概念**：
 - **聚合根**: User
-- **实体**: UserProfile、UserSettings
-- **值对象**: UserId、Email、Username、Nickname、Password、UserStatus
-- **领域服务**: UserDomainService、UserRegistrationDomainService
-- **领域事件**: UserCreatedEvent、UserActivatedEvent、UserStatusChangedEvent、UserProfileUpdatedEvent、UserPasswordChangedEvent、UserOrganizationAssignedEvent
+- **实体**: UserProfile、UserSettings、UserPreferences
+- **值对象**: UserId、Email、Username、Nickname、UserStatus
+- **领域服务**: UserDomainService、UserProfileDomainService
+- **领域事件**: UserCreatedEvent、UserProfileUpdatedEvent、UserPreferencesChangedEvent、UserStatusChangedEvent
 - **事件溯源**: EventSourcedUser、UserEventStore、UserSnapshotManager
 
 **业务规则**：
 - 邮箱地址必须全局唯一
 - 昵称必须全局唯一
-- 密码必须符合安全要求
 - 用户只能归属一个租户
 - 用户必须至少归属一个组织
 - 用户可以同时归属多个组织
@@ -276,7 +288,78 @@
 - 所有用户操作都通过事件记录
 - 支持用户状态历史追踪
 
-#### 3.2.3 租户变更领域 (Tenant Change Domain)
+#### 3.2.3 认证领域 (Authentication Domain)
+
+**领域职责**：
+- 用户身份验证
+- 登录流程管理
+- 会话管理
+- 多因子认证
+- 密码管理
+- 认证事件溯源
+
+**子领域划分**：
+- **login**: 登录流程、认证策略
+- **password**: 密码管理、重置、验证
+- **mfa**: 多因子认证、OTP、生物识别
+- **sessions**: 会话管理、令牌管理
+
+**核心概念**：
+- **聚合根**: LoginSession、MfaDevice、PasswordReset
+- **实体**: LoginAttempt、SecurityPolicy、MfaToken
+- **值对象**: SessionId、TokenId、LoginStatus、MfaType
+- **领域服务**: AuthenticationDomainService、SessionDomainService、MfaDomainService
+- **领域事件**: UserLoggedInEvent、UserLoggedOutEvent、SessionCreatedEvent、SessionExpiredEvent、MfaEnabledEvent、PasswordChangedEvent
+- **事件溯源**: EventSourcedSession、AuthenticationEventStore、AuthenticationSnapshotManager
+
+**业务规则**：
+- 支持多种认证方式（用户名/密码、邮箱/密码、手机号/验证码）
+- 会话超时自动失效
+- 支持多因子认证
+- 密码必须符合安全要求
+- 异常登录行为监控
+- 所有认证操作都通过事件记录
+- 支持安全事件历史追踪
+
+#### 3.2.4 授权领域 (Authorization Domain)
+
+**领域职责**：
+- 权限控制管理
+- 角色管理
+- 访问策略管理
+- CASL权限规则管理
+- 基于组织的访问控制（OBAC）
+- 授权事件溯源
+
+**子领域划分**：
+- **permissions**: 权限定义、权限管理
+- **roles**: 角色管理、角色分配
+- **policies**: 访问策略、策略引擎
+- **casl**: CASL 权限库集成
+- **obac**: 基于组织的访问控制
+
+**核心概念**：
+- **聚合根**: Role、Permission、OrganizationPermission、CaslRule
+- **实体**: UserRole、RolePermission、PermissionPolicy、CaslAbility
+- **值对象**: RoleId、RoleName、RoleCode、PermissionId、PermissionName、CaslAction、CaslSubject
+- **领域服务**: RoleDomainService、PermissionDomainService、AuthorizationDomainService、CaslPermissionDomainService
+- **领域事件**: RoleCreatedEvent、PermissionAssignedEvent、UserRoleChangedEvent、CaslRuleUpdatedEvent、OrganizationPermissionChangedEvent
+- **事件溯源**: EventSourcedRole、EventSourcedPermission、PermissionEventStore、PermissionSnapshotManager
+
+**业务规则**：
+- 系统管理员拥有所有权限
+- 租户管理员拥有本租户所有权限
+- 组织管理员拥有本组织及子组织权限
+- 权限基于角色和组织分配
+- 用户权限 = 角色权限 + 所有组织权限的并集
+- 权限变更立即生效
+- 组织权限可以继承父组织权限
+- 使用CASL声明式权限规则
+- 支持复杂的权限逻辑组合
+- 所有权限操作都通过事件记录
+- 支持权限变更历史追踪
+
+#### 3.2.5 租户变更领域 (Tenant Change Domain)
 
 **领域职责**：
 - 用户租户变更申请管理
@@ -284,6 +367,11 @@
 - 租户变更历史记录
 - 租户管理员更换
 - 租户变更事件溯源
+
+**子领域划分**：
+- **applications**: 租户变更申请管理
+- **approval**: 租户变更审核流程
+- **history**: 租户变更历史记录
 
 **核心概念**：
 - **聚合根**: UserTenantChangeApplication、UserTenantChangeRecord
@@ -301,69 +389,7 @@
 - 所有租户变更操作都通过事件记录
 - 支持完整的变更历史追踪
 
-#### 3.2.4 权限管理领域 (Permission Management Domain)
 
-**领域职责**：
-- 角色定义和管理
-- 权限分配和验证
-- 用户角色管理
-- 组织权限管理
-- 权限策略管理
-- 权限继承规则
-- CASL权限规则管理
-- 权限事件溯源
-
-**核心概念**：
-- **聚合根**: Role、Permission、OrganizationPermission
-- **实体**: UserRole、RolePermission、PermissionPolicy、CaslRule
-- **值对象**: RoleId、RoleName、RoleCode、PermissionId、PermissionName、CaslAction、CaslSubject
-- **领域服务**: RoleDomainService、PermissionDomainService、AuthorizationDomainService、OrganizationPermissionDomainService、CaslPermissionDomainService
-- **领域事件**: RoleCreatedEvent、PermissionAssignedEvent、UserRoleChangedEvent、OrganizationPermissionChangedEvent、CaslRuleUpdatedEvent、RolePermissionAssignedEvent、UserOrganizationRoleChangedEvent
-- **事件溯源**: EventSourcedRole、EventSourcedPermission、PermissionEventStore、PermissionSnapshotManager
-- **缓存服务**: PermissionCacheService、UserPermissionCacheService、OrganizationPermissionCacheService
-
-**业务规则**：
-- 系统管理员拥有所有权限
-- 租户管理员拥有本租户所有权限
-- 组织管理员拥有本组织及子组织权限
-- 权限基于角色和组织分配
-- 用户权限 = 角色权限 + 所有组织权限的并集
-- 权限变更立即生效
-- 组织权限可以继承父组织权限
-- 使用CASL声明式权限规则
-- 支持复杂的权限逻辑组合
-- 所有权限操作都通过事件记录
-- 支持权限变更历史追踪
-
-#### 3.2.5 认证授权领域 (Authentication & Authorization Domain)
-
-**领域职责**：
-- 用户认证管理
-- 会话管理
-- 访问控制
-- 组织权限验证
-- CASL权限验证
-- 安全策略
-- 认证事件溯源
-
-**核心概念**：
-- **聚合根**: Session、AccessToken
-- **实体**: LoginAttempt、SecurityPolicy、CaslAbility
-- **值对象**: SessionId、TokenId、LoginStatus、CaslAction、CaslSubject
-- **领域服务**: AuthenticationDomainService、AuthorizationDomainService、SessionDomainService、OrganizationAuthorizationDomainService、CaslAuthorizationDomainService
-- **领域事件**: UserLoggedInEvent、UserLoggedOutEvent、AccessDeniedEvent、OrganizationAccessEvent、CaslPermissionCheckedEvent、SessionCreatedEvent、SessionExpiredEvent、LoginAttemptFailedEvent
-- **事件溯源**: EventSourcedSession、AuthenticationEventStore、AuthenticationSnapshotManager
-
-**业务规则**：
-- 支持多种认证方式
-- 会话超时自动失效
-- 访问控制基于权限验证
-- 组织权限验证基于用户组织归属
-- 数据访问基于组织权限隔离
-- 使用CASL进行权限验证
-- 异常登录行为监控
-- 所有认证授权操作都通过事件记录
-- 支持安全事件历史追踪
 
 #### 3.2.6 申请审核领域 (Application Review Domain)
 
@@ -373,6 +399,11 @@
 - 审核规则管理
 - 审核历史记录
 - 申请审核事件溯源
+
+**子领域划分**：
+- **management**: 申请管理、流程协调
+- **rules**: 审核规则管理
+- **history**: 审核历史记录
 
 **核心概念**：
 - **聚合根**: Application、ReviewProcess
@@ -390,7 +421,7 @@
 - 所有申请审核操作都通过事件记录
 - 支持完整的审核流程追踪
 
-#### 3.2.7 审计监控领域 (Audit & Monitoring Domain)
+#### 3.2.7 审计领域 (Audit Domain)
 
 **领域职责**：
 - 操作日志记录
@@ -398,6 +429,11 @@
 - 审计报告生成
 - 合规性检查
 - 事件溯源管理
+
+**子领域划分**：
+- **logging**: 审计日志记录
+- **compliance**: 合规性检查
+- **reporting**: 审计报告生成
 
 **核心概念**：
 - **聚合根**: OperationLog、SecurityEvent、AuditReport
@@ -415,7 +451,7 @@
 - 所有审计监控操作都通过事件记录
 - 支持完整的事件溯源和重放
 
-#### 3.2.8 组织管理领域 (Organization Management Domain)
+#### 3.2.8 组织领域 (Organizations Domain)
 
 **领域职责**：
 - 组织架构管理
@@ -424,6 +460,13 @@
 - 组织权限配置
 - 组织数据隔离
 - 组织事件溯源
+
+**子领域划分**：
+- **management**: 组织管理、CRUD操作
+- **hierarchy**: 组织层级关系管理
+- **structure**: 组织结构管理
+- **user-assignment**: 用户组织分配管理 ⭐ 新增
+- **permissions**: 组织权限管理 ⭐ 新增
 
 **核心概念**：
 - **聚合根**: Organization、UserOrganization
@@ -463,21 +506,27 @@
 - 通知模板管理
 - 通知历史记录
 
+**子领域划分**：
+- **email**: 邮件通知
+- **sms**: 短信通知
+- **push**: 推送通知
+
 ### 3.4 领域间关系
 
 #### 3.4.1 依赖关系
 ```
-租户管理领域 ← 用户管理领域
-租户管理领域 ← 租户变更领域
-租户管理领域 ← 组织管理领域
-用户管理领域 ← 租户变更领域
-用户管理领域 ← 组织管理领域
-权限管理领域 ← 用户管理领域
-权限管理领域 ← 组织管理领域
-认证授权领域 ← 权限管理领域
-申请审核领域 ← 租户管理领域
+租户领域 ← 用户领域
+租户领域 ← 租户变更领域
+租户领域 ← 组织领域
+用户领域 ← 租户变更领域
+用户领域 ← 组织领域
+认证领域 ← 用户领域
+授权领域 ← 用户领域
+授权领域 ← 组织领域
+申请审核领域 ← 租户领域
 申请审核领域 ← 租户变更领域
-审计监控领域 ← 所有其他领域
+审计领域 ← 所有其他领域
+通知领域 ← 所有其他领域
 ```
 
 #### 3.4.2 集成方式
@@ -485,6 +534,80 @@
 - **接口契约**: 定义清晰的领域接口
 - **共享值对象**: 使用共享的值对象进行数据交换
 - **防腐层**: 隔离外部系统依赖
+
+### 3.5 领域边界重新划分总结
+
+#### 3.5.1 重新划分的优势
+
+**单一职责原则**：
+- **Users领域**: 专注于用户信息管理，职责更加纯粹
+- **Authentication领域**: 专注于身份验证，支持多种认证方式
+- **Authorization领域**: 专注于权限控制，集成CASL和OBAC
+
+**高内聚低耦合**：
+- 每个领域职责明确，内部高内聚
+- 领域间通过接口和事件协作，低耦合
+- 便于独立开发、测试和部署
+
+**可扩展性**：
+- 认证领域可以支持多种认证方式（OAuth、SAML、LDAP等）
+- 授权领域可以集成不同的权限框架（RBAC、ABAC、PBAC等）
+- 用户领域可以专注于业务逻辑和数据模型设计
+
+**技术选型灵活性**：
+- 认证领域可以选择不同的认证库和策略
+- 授权领域可以集成CASL、RBAC、ABAC等不同权限模型
+- 用户领域可以专注于DDD建模和业务规则
+
+#### 3.5.2 子领域划分策略
+
+**领域命名规范**：
+- **领域名称**: 使用复数形式，如 `tenants`、`users`、`organizations`
+- **子领域名称**: 使用名词，如 `management`、`billing`、`authentication`
+- **文件命名**: 使用 kebab-case，如 `tenant-management.service.ts`
+
+**子领域职责边界**：
+- **management**: 核心的CRUD操作和状态管理
+- **profiles**: 用户档案和个性化信息
+- **preferences**: 用户偏好和配置设置
+- **billing**: 计费和支付相关功能
+- **settings**: 配置和个性化设置
+- **applications**: 申请流程管理
+- **tenant-change**: 租户变更管理
+- **registration**: 用户注册和账户创建
+- **user-assignment**: 用户组织分配
+- **permissions**: 权限管理
+- **hierarchy**: 层级关系管理
+- **structure**: 结构管理
+- **logging**: 日志记录
+- **compliance**: 合规检查
+- **reporting**: 报告生成
+- **rules**: 规则管理
+- **history**: 历史记录
+- **approval**: 审核流程
+- **email**: 邮件通知
+- **sms**: 短信通知
+- **push**: 推送通知
+
+#### 3.5.3 实施建议
+
+**分阶段实施**：
+1. **第一阶段**: 创建新的领域结构，保持向后兼容
+2. **第二阶段**: 逐步迁移现有功能到新领域
+3. **第三阶段**: 完善领域间接口和事件通信
+4. **第四阶段**: 优化和重构，移除旧代码
+
+**接口设计**：
+- 定义清晰的领域间接口
+- 使用领域事件进行松耦合通信
+- 实现防腐层隔离外部依赖
+
+**测试策略**：
+- 为每个领域编写独立的单元测试
+- 编写领域间的集成测试
+- 实现端到端的业务流程测试
+
+
 
 ---
 
@@ -716,61 +839,230 @@ apps/api/src/
 │           └── correlation.service.ts
 │
 ├── modules/                         # 业务模块
-│   ├── tenant-management/           # 租户管理领域
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   ├── presentation/
-│   │   └── tenant-management.module.ts
+│   ├── tenants/                     # 租户领域
+│   │   ├── management/              # 租户管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── billing/                 # 租户计费子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── settings/                # 租户设置子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── applications/            # 租户申请子领域 ⭐ 新增
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── tenant-change/           # 租户变更子领域 ⭐ 新增
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   └── tenants.module.ts
 │   │
-│   ├── user-management/             # 用户管理领域
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   ├── presentation/
-│   │   └── user-management.module.ts
+│   ├── users/                       # 用户领域
+│   │   ├── management/              # 用户管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── profiles/                # 用户档案子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── preferences/             # 用户偏好子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── registration/            # 用户注册子领域 ⭐ 新增
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── tenant-change/           # 用户租户变更子领域 ⭐ 新增
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   └── users.module.ts
 │   │
-│   ├── tenant-change/               # 租户变更领域
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   ├── presentation/
-│   │   └── tenant-change.module.ts
-│   │
-│   ├── organization-management/      # 组织管理领域
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   ├── presentation/
-│   │   └── organization-management.module.ts
-│   │
-│   ├── permission-management/       # 权限管理领域
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   ├── presentation/
-│   │   └── permission-management.module.ts
-│   │
-│   ├── authentication/              # 认证授权领域
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   ├── presentation/
+│   ├── authentication/              # 认证领域
+│   │   ├── login/                   # 登录子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── password/                # 密码管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── mfa/                     # 多因子认证子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── sessions/                # 会话管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
 │   │   └── authentication.module.ts
 │   │
+│   ├── authorization/               # 授权领域
+│   │   ├── permissions/             # 权限管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── roles/                   # 角色管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── policies/                # 策略管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── casl/                    # CASL集成子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── obac/                    # 基于组织的访问控制子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   └── authorization.module.ts
+│   │
+│   ├── organizations/               # 组织领域
+│   │   ├── management/              # 组织管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── hierarchy/               # 组织层级子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── structure/               # 组织结构子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── user-assignment/         # 用户分配子领域 ⭐ 新增
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── permissions/             # 组织权限子领域 ⭐ 新增
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   └── organizations.module.ts
+│   │
+│   ├── tenant-change/               # 租户变更领域
+│   │   ├── applications/            # 租户变更申请子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── approval/                # 租户变更审核子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── history/                 # 租户变更历史子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   └── tenant-change.module.ts
+│   │
 │   ├── application-review/          # 申请审核领域
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   ├── presentation/
+│   │   ├── management/              # 申请管理子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── rules/                   # 审核规则子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── history/                 # 审核历史子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
 │   │   └── application-review.module.ts
 │   │
-│   └── audit-monitoring/            # 审计监控领域
-│       ├── domain/
-│       ├── application/
-│       ├── infrastructure/
-│       ├── presentation/
-│       └── audit-monitoring.module.ts
+│   ├── events/                      # 事件领域
+│   │   ├── sourcing/                # 事件溯源子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── publishing/              # 事件发布子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── replay/                  # 事件重放子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   └── events.module.ts
+│   │
+│   ├── audit/                       # 审计领域
+│   │   ├── logging/                 # 审计日志子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── compliance/              # 合规审计子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   ├── reporting/               # 审计报告子领域
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── presentation/
+│   │   └── audit.module.ts
+│   │
+│   └── notifications/               # 通知领域
+│       ├── email/                   # 邮件通知子领域
+│       │   ├── domain/
+│       │   ├── application/
+│       │   ├── infrastructure/
+│       │   └── presentation/
+│       ├── sms/                     # 短信通知子领域
+│       │   ├── domain/
+│       │   ├── application/
+│       │   ├── infrastructure/
+│       │   └── presentation/
+│       ├── push/                    # 推送通知子领域
+│       │   ├── domain/
+│       │   ├── application/
+│       │   ├── infrastructure/
+│       │   └── presentation/
+│       └── notifications.module.ts
 ```
 
 ### 4.4 事件溯源架构 (Event Sourcing Architecture)

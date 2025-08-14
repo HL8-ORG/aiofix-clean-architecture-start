@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ContextModule } from './shared/infrastructure/context/context.module';
 
 /**
  * @class AppModule
@@ -18,7 +19,7 @@ import { AppService } from './app.service';
  * - imports: 导入其他模块
  */
 @Module({
-  imports: [],
+  imports: [ContextModule],
   controllers: [AppController],
   providers: [AppService],
 })
