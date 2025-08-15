@@ -142,7 +142,7 @@
    - [x] 修复编译错误和测试问题
 
  - [ ] **缓存管理开发**
-   - [ ] 创建RedisCacheService
+       - [x] 创建RedisCacheService
    - [ ] 实现MemoryCacheService
    - [ ] 创建CacheManagerService
    - [x] 实现CacheKeyFactory
