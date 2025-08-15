@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
@@ -13,6 +13,8 @@ import type {
   TransactionStats,
 } from '../interfaces/mikro-orm-transaction-manager.interface';
 import { TransactionStatus, TransactionIsolationLevel } from '../interfaces/mikro-orm-transaction-manager.interface';
+import { PinoLoggerService } from '../../../../logging/services/pino-logger.service';
+import { LogContext } from '../../../../logging/interfaces/logging.interface';
 
 /**
  * @interface TransactionEntry
@@ -108,7 +110,7 @@ class MikroOrmTransaction implements ITransaction {
  */
 @Injectable()
 export class MikroOrmTransactionManager implements IMikroOrmTransactionManager {
-  private readonly logger = new Logger(MikroOrmTransactionManager.name);
+  private readonly logger: PinoLoggerService;
 
   /**
    * 事务映射，按配置哈希分组
@@ -155,8 +157,9 @@ export class MikroOrmTransactionManager implements IMikroOrmTransactionManager {
     shortestTransactionTime: 0,
   };
 
-  constructor() {
-    this.logger.log('MikroORM事务管理器已初始化');
+  constructor(logger: PinoLoggerService) {
+    this.logger = logger;
+    this.logger.info('MikroORM事务管理器已初始化', LogContext.DATABASE);
   }
 
   // 基本事务管理方法
@@ -243,7 +246,7 @@ export class MikroOrmTransactionManager implements IMikroOrmTransactionManager {
   // 连接管理器管理方法
   setConnectionManager(connectionManager: IMikroOrmConnectionManager): void {
     this.connectionManager = connectionManager;
-    this.logger.debug('设置连接管理器');
+    this.logger.debug('设置连接管理器', LogContext.DATABASE);
   }
 
   getConnectionManager(): IMikroOrmConnectionManager | null {
@@ -261,14 +264,14 @@ export class MikroOrmTransactionManager implements IMikroOrmTransactionManager {
       this.performMonitoring();
     }, interval);
 
-    this.logger.log(`启用事务监控，间隔: ${interval}ms`);
+    this.logger.info(`启用事务监控，间隔: ${interval}ms`, LogContext.DATABASE);
   }
 
   disableMonitoring(): void {
     if (this.monitoringTimer) {
       clearInterval(this.monitoringTimer);
       this.monitoringTimer = undefined;
-      this.logger.log('禁用事务监控');
+      this.logger.info('禁用事务监控', LogContext.DATABASE);
     }
   }
 
@@ -301,6 +304,6 @@ export class MikroOrmTransactionManager implements IMikroOrmTransactionManager {
 
   private async performMonitoring(): Promise<void> {
     // TODO: 实现监控逻辑
-    this.logger.debug('执行事务监控');
+    this.logger.debug('执行事务监控', LogContext.DATABASE);
   }
 }

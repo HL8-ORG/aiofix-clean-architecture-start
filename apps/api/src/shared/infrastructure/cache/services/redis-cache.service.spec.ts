@@ -14,6 +14,7 @@ import Redis from 'ioredis';
 import { RedisCacheService, RedisConfig } from './redis-cache.service';
 import { CacheKeyFactory } from '../factories/cache-key.factory';
 import { CacheType, CacheStrategy } from '../interfaces/cache.interface';
+import { PinoLoggerService } from '../../logging/services/pino-logger.service';
 
 // Mock ioredis
 jest.mock('ioredis');
@@ -63,6 +64,18 @@ describe('RedisCacheService', () => {
           provide: 'ICacheKeyFactory',
           useClass: CacheKeyFactory,
         },
+        {
+          provide: PinoLoggerService,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+            warn: jest.fn(),
+            trace: jest.fn(),
+            fatal: jest.fn(),
+            child: jest.fn(),
+          },
+        },
         CacheKeyFactory,
         RedisCacheService,
       ],
@@ -108,7 +121,6 @@ describe('RedisCacheService', () => {
         db: 0,
         connectTimeout: 10000,
         commandTimeout: 5000,
-        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 3,
       });
       expect(mockRedis.ping).toHaveBeenCalled();
@@ -323,7 +335,7 @@ describe('RedisCacheService', () => {
 
       expect(result).toBe(true);
       expect(mockRedis.keys).toHaveBeenCalledWith(
-        keyFactory.createPattern('*', { namespace })
+        `${namespace}:*`
       );
       expect(mockRedis.del).toHaveBeenCalledWith(...keys);
     });

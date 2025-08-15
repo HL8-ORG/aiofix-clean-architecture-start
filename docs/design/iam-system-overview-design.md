@@ -693,10 +693,14 @@
 #### 4.2.3 数据库适配架构
 - **数据库抽象层**: 统一的数据库操作接口
 - **MikroORM适配器**: 基于MikroORM的多数据库适配
+- **数据库适配器工厂**: 支持运行时切换数据库类型
+- **数据库配置服务**: 环境变量驱动的配置管理
+- **动态模块工厂**: 配置驱动的模块加载机制
 - **连接池管理**: 数据库连接池配置和管理
 - **事务管理**: 跨数据库的事务支持
 - **迁移管理**: 数据库结构迁移和版本控制
 - **数据库驱动**: PostgreSQL驱动 + MongoDB驱动
+- **架构分层**: 数据库层与基础设施层职责分离
 
 #### 4.2.4 认证与安全
 - **JWT**: JSON Web Token认证
@@ -871,7 +875,21 @@ apps/api/src/
 │   │   ├── management/              # 用户管理子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
-│   │   │   ├── infrastructure/
+│   │   │   ├── database/            # 数据库层 ⭐ 新增
+│   │   │   │   ├── database-adapter.factory.ts
+│   │   │   │   ├── database.config.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── infrastructure/      # 基础设施层
+│   │   │   │   ├── postgresql/      # PostgreSQL实现
+│   │   │   │   │   ├── entities/
+│   │   │   │   │   ├── mappers/
+│   │   │   │   │   └── repositories/
+│   │   │   │   └── mongodb/         # MongoDB实现（计划中）
+│   │   │   │       ├── entities/
+│   │   │   │       ├── mappers/
+│   │   │   │       └── repositories/
+│   │   │   ├── users-management.module.ts
+│   │   │   ├── users-management-dynamic.module.ts
 │   │   │   └── presentation/
 │   │   ├── profiles/                # 用户档案子领域
 │   │   │   ├── domain/
@@ -2038,19 +2056,66 @@ export class AppModule implements NestModule {
 }
 ```
 
-### 4.7 MikroORM多数据库适配架构 (MikroORM Multi-Database Architecture)
+### 4.7 多数据库适配架构 (Multi-Database Architecture)
 
 #### 4.7.1 架构概述
-系统基于MikroORM实现多数据库适配，支持PostgreSQL和MongoDB，通过统一的接口和配置实现数据库的灵活切换。
+系统采用多数据库适配架构，支持PostgreSQL和MongoDB，通过统一的接口和配置实现数据库的灵活切换。
 
 **核心特性**：
 - **统一ORM**: 所有数据库操作都基于MikroORM
 - **数据库抽象**: 通过接口抽象不同数据库的差异
 - **配置驱动**: 通过配置文件切换数据库类型
+- **动态适配**: 支持运行时切换数据库类型
+- **架构分层**: 数据库层与基础设施层职责分离
 - **迁移管理**: 统一的数据库迁移和版本控制
 - **事务支持**: 跨数据库的事务管理
+- **数据库驱动**: PostgreSQL驱动 + MongoDB驱动
+- **扩展性**: 易于添加新的数据库支持
 
-#### 4.7.2 数据库适配器设计
+#### 4.7.2 多数据库适配架构设计
+
+**架构分层**：
+```
+用户管理模块/
+├── database/                    # 数据库层
+│   ├── database-adapter.factory.ts    # 数据库适配器工厂
+│   ├── database.config.ts             # 数据库配置服务
+│   └── index.ts                       # 数据库层索引
+├── infrastructure/              # 基础设施层
+│   ├── postgresql/              # PostgreSQL实现
+│   │   ├── entities/            # 数据库实体
+│   │   ├── mappers/             # 数据映射器
+│   │   └── repositories/        # 仓储实现
+│   └── mongodb/                 # MongoDB实现（计划中）
+│       ├── entities/            # 文档模型
+│       ├── mappers/             # 映射器
+│       └── repositories/        # 仓储实现
+├── users-management.module.ts   # 静态模块
+├── users-management-dynamic.module.ts # 动态模块
+└── ...
+```
+
+**核心组件**：
+
+1. **数据库适配器工厂 (DatabaseAdapterFactory)**
+   - 管理不同数据库的实现
+   - 提供统一的接口来访问数据库特定实现
+   - 支持运行时切换数据库
+   - 确保依赖注入的正确配置
+
+2. **数据库配置服务 (DatabaseConfigService)**
+   - 管理数据库类型选择
+   - 支持环境变量配置
+   - 提供默认配置
+   - 验证配置有效性
+
+3. **动态模块工厂 (UsersManagementDynamicModule)**
+   - 根据配置动态加载不同的数据库实现
+   - 提供统一的模块接口
+   - 支持运行时切换数据库
+   - 确保依赖注入的正确配置
+
+#### 4.7.3 数据库适配器设计
 
 **基础适配器接口**：
 ```typescript
@@ -2474,7 +2539,88 @@ export class TenantRepository extends BaseRepository<TenantEntity> implements IT
 export class DatabaseModule {}
 ```
 
-#### 4.7.7 环境配置示例
+#### 4.7.7 环境变量配置
+
+**环境变量配置**：
+```bash
+# 数据库类型 (postgresql | mongodb)
+USER_DATABASE_TYPE=postgresql
+
+# 数据库连接信息
+USER_DATABASE_HOST=localhost
+USER_DATABASE_PORT=5432
+USER_DATABASE_USERNAME=postgres
+USER_DATABASE_PASSWORD=password
+USER_DATABASE_NAME=aiofix_users
+
+# 或者使用连接字符串
+USER_DATABASE_URL=postgresql://username:password@localhost:5432/database
+```
+
+**使用方式**：
+
+1. **使用默认模块（PostgreSQL）**
+```typescript
+import { UsersManagementModule } from './users-management.module';
+
+@Module({
+  imports: [UsersManagementModule]
+})
+export class AppModule {}
+```
+
+2. **使用动态模块**
+```typescript
+import { UsersManagementDynamicModule } from './users-management-dynamic.module';
+import { DatabaseType } from './database';
+
+@Module({
+  imports: [
+    UsersManagementDynamicModule.forRoot({
+      databaseType: DatabaseType.POSTGRESQL
+    })
+  ]
+})
+export class AppModule {}
+```
+
+3. **运行时切换数据库**
+```typescript
+import { DatabaseAdapterFactory, DatabaseType } from './database';
+
+// 切换到MongoDB
+DatabaseAdapterFactory.setDatabaseType(DatabaseType.MONGODB);
+```
+
+#### 4.7.8 扩展新数据库
+
+要添加新的数据库支持，需要：
+
+1. **创建数据库目录结构**
+```
+infrastructure/mysql/
+├── entities/
+├── mappers/
+└── repositories/
+```
+
+2. **在DatabaseType枚举中添加**
+```typescript
+export enum DatabaseType {
+  POSTGRESQL = 'postgresql',
+  MONGODB = 'mongodb',
+  MYSQL = 'mysql'  // 新增
+}
+```
+
+3. **在DatabaseAdapterFactory中添加适配器**
+```typescript
+private static createMySQLAdapter(): DatabaseAdapter {
+  // 实现MySQL适配器
+}
+```
+
+#### 4.7.9 环境配置示例
 
 **开发环境配置**：
 ```yaml
@@ -2695,21 +2841,25 @@ export class MongoDbMigration20241201 extends Migration {
    - 读取数据库配置文件
    - 验证配置参数有效性
    - 确定当前数据库类型
+   - 加载环境变量配置
 
 2. **适配器创建**
    - 根据数据库类型创建对应适配器
    - 初始化MikroORM实例
    - 配置连接池参数
+   - 设置数据库特定选项
 
 3. **连接建立**
    - 建立数据库连接
    - 验证连接状态
    - 记录连接信息
+   - 初始化连接池
 
 4. **连接监控**
    - 监控连接池状态
    - 检测连接异常
    - 自动重连机制
+   - 性能指标收集
 
 #### 6.9.2 数据库迁移流程
 1. **迁移检测**
@@ -2737,14 +2887,17 @@ export class MongoDbMigration20241201 extends Migration {
    - 备份当前数据库
    - 验证目标数据库配置
    - 准备数据迁移脚本
+   - 检查数据兼容性
 
 2. **数据迁移**
    - 执行数据导出
    - 转换数据格式
    - 导入目标数据库
+   - 验证数据一致性
 
 3. **配置更新**
    - 更新应用配置
+   - 更新环境变量
    - 重启应用服务
    - 验证服务状态
 
@@ -2752,6 +2905,7 @@ export class MongoDbMigration20241201 extends Migration {
    - 验证数据完整性
    - 测试应用功能
    - 监控系统性能
+   - 回滚计划准备
 
 #### 6.9.4 事务管理流程
 1. **事务开始**

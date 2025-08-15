@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   IConfigurationCacheService,
@@ -11,6 +11,8 @@ import {
   CacheLayer,
 } from '../interfaces/configuration-cache.interface';
 import type { ConfigValue, ConfigKey } from '../interfaces/configuration.interface';
+import { PinoLoggerService } from '../../logging/services/pino-logger.service';
+import { LogContext } from '../../logging/interfaces/logging.interface';
 
 /**
  * @class ConfigurationCacheService
@@ -29,7 +31,7 @@ import type { ConfigValue, ConfigKey } from '../interfaces/configuration.interfa
  */
 @Injectable()
 export class ConfigurationCacheService implements IConfigurationCacheService {
-  private readonly logger = new Logger(ConfigurationCacheService.name);
+  private readonly logger: PinoLoggerService;
 
   // 缓存存储
   private readonly cache: Map<string, CacheEntry> = new Map();
@@ -70,7 +72,11 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
   // 事件监听器
   private readonly eventListeners: Map<CacheEvent['type'], Set<(event: CacheEvent) => void>> = new Map();
 
-  constructor(private readonly eventEmitter: EventEmitter2) {
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    logger: PinoLoggerService
+  ) {
+    this.logger = logger;
     this.initializeDefaultLayer();
     this.startCleanupInterval();
   }
@@ -107,16 +113,20 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
         return null;
       }
 
-      // 更新访问统计
-      entry.lastAccessed = new Date();
-      entry.accessCount++;
+      // 更新访问统计 - 创建新的条目对象
+      const updatedEntry: CacheEntry<T> = {
+        ...entry,
+        lastAccessed: new Date(),
+        accessCount: entry.accessCount + 1,
+      };
+      this.cache.set(cacheKey, updatedEntry);
 
       this.updateStats(true, Date.now() - startTime);
       this.emitEvent('get', cacheKey, { found: true, accessCount: entry.accessCount });
 
       return entry.value as T;
     } catch (error) {
-      this.logger.error(`Failed to get cache: ${cacheKey}`, error);
+      this.logger.error(`Failed to get cache: ${cacheKey}`, LogContext.CACHE, undefined, error);
       this.updateStats(false, Date.now() - startTime);
       return null;
     }
@@ -171,7 +181,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
 
       return true;
     } catch (error) {
-      this.logger.error(`Failed to set cache: ${cacheKey}`, error);
+      this.logger.error(`Failed to set cache: ${cacheKey}`, LogContext.CACHE, undefined, error);
       this.updateStats(false, Date.now() - startTime);
       return false;
     }
@@ -197,7 +207,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
       }
       return deleted;
     } catch (error) {
-      this.logger.error(`Failed to delete cache: ${cacheKey}`, error);
+      this.logger.error(`Failed to delete cache: ${cacheKey}`, LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -392,7 +402,11 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
       const cacheKey = this.buildCacheKey(key);
       const entry = this.cache.get(cacheKey);
       if (entry) {
-        entry.lastAccessed = new Date();
+        const updatedEntry: CacheEntry = {
+          ...entry,
+          lastAccessed: new Date(),
+        };
+        this.cache.set(cacheKey, updatedEntry);
         return 1;
       }
       return 0;
@@ -400,8 +414,12 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
 
     // 刷新所有缓存
     let refreshedCount = 0;
-    for (const entry of this.cache.values()) {
-      entry.lastAccessed = new Date();
+    for (const [cacheKey, entry] of this.cache.entries()) {
+      const updatedEntry: CacheEntry = {
+        ...entry,
+        lastAccessed: new Date(),
+      };
+      this.cache.set(cacheKey, updatedEntry);
       refreshedCount++;
     }
 
@@ -477,7 +495,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
       this.layers.sort((a, b) => a.priority - b.priority);
       return true;
     } catch (error) {
-      this.logger.error('Failed to add cache layer', error);
+      this.logger.error('Failed to add cache layer', LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -513,7 +531,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
       this.strategyUsage[strategy]++;
       return true;
     } catch (error) {
-      this.logger.error('Failed to set cache strategy', error);
+      this.logger.error('Failed to set cache strategy', LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -538,7 +556,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
       this.options = { ...this.options, ...options };
       return true;
     } catch (error) {
-      this.logger.error('Failed to set cache options', error);
+      this.logger.error('Failed to set cache options', LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -638,7 +656,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
 
       return importedCount;
     } catch (error) {
-      this.logger.error('Failed to import cache data', error);
+      this.logger.error('Failed to import cache data', LogContext.CACHE, undefined, error);
       return 0;
     }
   }
@@ -772,11 +790,12 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
     }
 
     // 如果是ConfigKey对象，构建复合键
-    const parts = [];
+    const parts: string[] = [];
     if (key.tenantId) parts.push(`tenant:${key.tenantId}`);
     if (key.module) parts.push(`module:${key.module}`);
-    if (key.category) parts.push(`category:${key.category}`);
-    if (key.name) parts.push(`name:${key.name}`);
+    if (key.userId) parts.push(`user:${key.userId}`);
+    parts.push(`scope:${key.scope}`);
+    parts.push(`key:${key.key}`);
 
     return parts.join(':') || 'default';
   }
@@ -828,7 +847,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
         try {
           callback(event);
         } catch (error) {
-          this.logger.error(`Error in cache event listener: ${type}`, error);
+          this.logger.error(`Error in cache event listener: ${type}`, LogContext.CACHE, undefined, error);
         }
       }
     }
@@ -935,7 +954,7 @@ export class ConfigurationCacheService implements IConfigurationCacheService {
       try {
         await this.clearExpired();
       } catch (error) {
-        this.logger.error('Failed to clear expired cache', error);
+        this.logger.error('Failed to clear expired cache', LogContext.CACHE, undefined, error);
       }
     }, 60 * 1000);
 

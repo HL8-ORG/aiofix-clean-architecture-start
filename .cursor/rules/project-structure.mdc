@@ -1,7 +1,7 @@
 ---
 description: project-structure
 globs:
-alwaysApply: true
+alwaysApply: false
 ---
 ---
 # 

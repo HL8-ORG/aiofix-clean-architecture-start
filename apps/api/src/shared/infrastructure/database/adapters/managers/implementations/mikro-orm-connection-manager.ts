@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { MikroORM, EntityManager } from '@mikro-orm/core';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
@@ -13,6 +13,8 @@ import type {
   ConnectionHealthCheck,
 } from '../interfaces/mikro-orm-connection-manager.interface';
 import { ConnectionStatus } from '../interfaces/mikro-orm-connection-manager.interface';
+import { PinoLoggerService } from '../../../../logging/services/pino-logger.service';
+import { LogContext } from '../../../../logging/interfaces/logging.interface';
 
 /**
  * @interface ConnectionEntry
@@ -68,7 +70,7 @@ interface ConnectionPool {
  */
 @Injectable()
 export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
-  private readonly logger = new Logger(MikroOrmConnectionManager.name);
+  private readonly logger: PinoLoggerService;
 
   /**
    * 连接池映射，按配置哈希分组
@@ -116,8 +118,9 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
     successRate: 1.0,
   };
 
-  constructor() {
-    this.logger.log('MikroORM连接管理器已初始化');
+  constructor(logger: PinoLoggerService) {
+    this.logger = logger;
+    this.logger.info('MikroORM连接管理器已初始化', LogContext.DATABASE);
   }
 
   // 基本连接管理方法
@@ -144,7 +147,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
         this.stats.activeConnections++;
         this.stats.idleConnections--;
 
-        this.logger.debug(`复用现有连接: ${idleConnection.info.id}`);
+        this.logger.debug(`复用现有连接: ${idleConnection.info.id}`, LogContext.DATABASE);
         return idleConnection.orm.em;
       }
 
@@ -158,7 +161,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
         this.stats.activeConnections++;
         this.stats.totalConnections++;
 
-        this.logger.debug(`创建新连接: ${newConnection.info.id}`);
+        this.logger.debug(`创建新连接: ${newConnection.info.id}`, LogContext.DATABASE);
         return newConnection.orm.em;
       }
 
@@ -167,7 +170,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
     } catch (error) {
       this.stats.failedConnections++;
       this.updateSuccessRate();
-      this.logger.error(`获取连接失败: ${error.message}`, error.stack);
+      this.logger.error(`获取连接失败: ${error.message}`, LogContext.DATABASE, undefined, error);
       throw error;
     }
   }
@@ -179,7 +182,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
     const mergedOptions = { ...this.defaultOptions, ...options };
     const connection = await this.createNewConnection(config, mergedOptions);
 
-    this.logger.debug(`创建独立连接: ${connection.info.id}`);
+    this.logger.debug(`创建独立连接: ${connection.info.id}`, LogContext.DATABASE);
     return connection.orm.em;
   }
 
@@ -195,9 +198,9 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
       const closePromises = pool.connections.map(async (connection) => {
         try {
           await connection.orm.close();
-          this.logger.debug(`关闭连接: ${connection.info.id}`);
+          this.logger.debug(`关闭连接: ${connection.info.id}`, LogContext.DATABASE);
         } catch (error) {
-          this.logger.error(`关闭连接失败: ${connection.info.id}`, error.stack);
+          this.logger.error(`关闭连接失败: ${connection.info.id}`, LogContext.DATABASE, undefined, error);
         }
       });
 
@@ -214,7 +217,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
 
       return true;
     } catch (error) {
-      this.logger.error(`关闭连接池失败: ${configHash}`, error.stack);
+      this.logger.error(`关闭连接池失败: ${configHash}`, LogContext.DATABASE, undefined, error);
       return false;
     }
   }
@@ -228,16 +231,16 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
           try {
             await connection.orm.close();
             totalClosed++;
-            this.logger.debug(`关闭连接: ${connection.info.id}`);
+            this.logger.debug(`关闭连接: ${connection.info.id}`, LogContext.DATABASE);
           } catch (error) {
-            this.logger.error(`关闭连接失败: ${connection.info.id}`, error.stack);
+            this.logger.error(`关闭连接失败: ${connection.info.id}`, LogContext.DATABASE, undefined, error);
           }
         });
 
         await Promise.all(closePromises);
         pool.stats.totalClosed += pool.connections.length;
       } catch (error) {
-        this.logger.error(`关闭连接池失败: ${configHash}`, error.stack);
+        this.logger.error(`关闭连接池失败: ${configHash}`, LogContext.DATABASE, undefined, error);
       }
     }
 
@@ -249,7 +252,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
     // 清空连接池
     this.connectionPools.clear();
 
-    this.logger.log(`已关闭所有连接，总计: ${totalClosed}`);
+    this.logger.info(`已关闭所有连接，总计: ${totalClosed}`, LogContext.DATABASE);
     return totalClosed;
   }
 
@@ -374,7 +377,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
   // 适配器管理方法
   setAdapter(adapter: IMikroOrmAdapter): void {
     this.adapters.set(adapter.supportedDatabaseType, adapter);
-    this.logger.debug(`设置适配器: ${adapter.adapterName}`);
+    this.logger.debug(`设置适配器: ${adapter.adapterName}`, LogContext.DATABASE);
   }
 
   getAdapter(databaseType: DatabaseType): IMikroOrmAdapter | null {
@@ -422,15 +425,15 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
           this.stats.totalConnections--;
           this.stats.idleConnections--;
 
-          this.logger.debug(`清理空闲连接: ${connection.info.id}`);
+          this.logger.debug(`清理空闲连接: ${connection.info.id}`, LogContext.DATABASE);
         } catch (error) {
-          this.logger.error(`清理连接失败: ${connection.info.id}`, error.stack);
+          this.logger.error(`清理连接失败: ${connection.info.id}`, LogContext.DATABASE, undefined, error);
         }
       }
     }
 
     if (totalCleaned > 0) {
-      this.logger.log(`清理了 ${totalCleaned} 个空闲连接`);
+      this.logger.info(`清理了 ${totalCleaned} 个空闲连接`, LogContext.DATABASE);
     }
 
     return totalCleaned;
@@ -444,10 +447,10 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
       // 创建新连接
       await this.getConnection(config, { forceReconnect: true });
 
-      this.logger.log(`强制重连成功: ${config.host}:${config.port}`);
+      this.logger.info(`强制重连成功: ${config.host}:${config.port}`, LogContext.DATABASE);
       return true;
     } catch (error) {
-      this.logger.error(`强制重连失败: ${config.host}:${config.port}`, error.stack);
+      this.logger.error(`强制重连失败: ${config.host}:${config.port}`, LogContext.DATABASE, undefined, error);
       return false;
     }
   }
@@ -468,14 +471,14 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
       this.performMonitoring();
     }, interval);
 
-    this.logger.log(`启用连接监控，间隔: ${interval}ms`);
+    this.logger.info(`启用连接监控，间隔: ${interval}ms`, LogContext.DATABASE);
   }
 
   disableMonitoring(): void {
     if (this.monitoringTimer) {
       clearInterval(this.monitoringTimer);
       this.monitoringTimer = undefined;
-      this.logger.log('禁用连接监控');
+      this.logger.info('禁用连接监控', LogContext.DATABASE);
     }
   }
 
@@ -526,7 +529,7 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
       // 更新统计信息
       this.updateStats();
     } catch (error) {
-      this.logger.error('监控执行失败', error.stack);
+      this.logger.error('监控执行失败', LogContext.DATABASE, undefined, error);
     }
   }
 
@@ -580,11 +583,11 @@ export class MikroOrmConnectionManager implements IMikroOrmConnectionManager {
         retryCount: 0,
       };
 
-      this.logger.debug(`创建连接成功: ${connectionId}, 耗时: ${connectionTime}ms`);
+      this.logger.debug(`创建连接成功: ${connectionId}, 耗时: ${connectionTime}ms`, LogContext.DATABASE);
       return connection;
     } catch (error) {
       const connectionTime = Date.now() - startTime;
-      this.logger.error(`创建连接失败: ${connectionId}, 耗时: ${connectionTime}ms`, error.stack);
+      this.logger.error(`创建连接失败: ${connectionId}, 耗时: ${connectionTime}ms`, LogContext.DATABASE, undefined, error);
       throw error;
     }
   }

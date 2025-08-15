@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigurationCacheService } from './configuration-cache.service';
 import { CacheStrategy, CacheEvictionPolicy } from '../interfaces/configuration-cache.interface';
+import { PinoLoggerService } from '../../logging/services/pino-logger.service';
 
 describe('ConfigurationCacheService', () => {
   let service: ConfigurationCacheService;
@@ -15,6 +16,15 @@ describe('ConfigurationCacheService', () => {
           provide: EventEmitter2,
           useValue: {
             emit: jest.fn(),
+          },
+        },
+        {
+          provide: PinoLoggerService,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
           },
         },
       ],

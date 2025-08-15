@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type {
   IConfigurationService,
@@ -15,6 +15,8 @@ import type {
 import type { IConfigurationValidator } from '../interfaces/configuration-validator.interface';
 import type { IConfigurationCacheService } from '../interfaces/configuration-cache.interface';
 import type { IConfigurationEncryptionService } from '../interfaces/configuration-encryption.interface';
+import { PinoLoggerService } from '../../logging/services/pino-logger.service';
+import { LogContext } from '../../logging/interfaces/logging.interface';
 
 /**
  * @class ConfigurationService
@@ -33,7 +35,7 @@ import type { IConfigurationEncryptionService } from '../interfaces/configuratio
  */
 @Injectable()
 export class ConfigurationService implements IConfigurationService {
-  private readonly logger = new Logger(ConfigurationService.name);
+  private readonly logger: PinoLoggerService;
 
   // 配置存储
   private readonly configs: Map<string, ConfigValue> = new Map();
@@ -57,8 +59,11 @@ export class ConfigurationService implements IConfigurationService {
     private readonly validator: IConfigurationValidator,
     private readonly cacheService: IConfigurationCacheService,
     private readonly encryptionService: IConfigurationEncryptionService,
-    private readonly eventEmitter: EventEmitter2
-  ) { }
+    private readonly eventEmitter: EventEmitter2,
+    logger: PinoLoggerService
+  ) {
+    this.logger = logger;
+  }
 
   /**
    * @method get
@@ -93,7 +98,7 @@ export class ConfigurationService implements IConfigurationService {
       // 如果不存在，抛出错误
       throw new Error(`Configuration not found: ${fullKey}`);
     } catch (error) {
-      this.logger.error(`Failed to get config: ${key}`, error);
+      this.logger.error(`Failed to get config: ${key}`, LogContext.CONFIG, undefined, error);
       throw error;
     }
   }
@@ -188,7 +193,7 @@ export class ConfigurationService implements IConfigurationService {
       this.changeCount++;
       return true;
     } catch (error) {
-      this.logger.error(`Failed to set config: ${key}`, error);
+      this.logger.error(`Failed to set config: ${key}`, LogContext.CONFIG, undefined, error);
       return false;
     }
   }
@@ -203,7 +208,7 @@ export class ConfigurationService implements IConfigurationService {
       }
       return existed;
     } catch (error) {
-      this.logger.error(`Failed to delete config: ${key}`, error);
+      this.logger.error(`Failed to delete config: ${key}`, LogContext.CONFIG, undefined, error);
       return false;
     }
   }
@@ -213,7 +218,7 @@ export class ConfigurationService implements IConfigurationService {
       const fullKey = this.buildFullKey(key);
       return this.configs.has(fullKey);
     } catch (error) {
-      this.logger.error(`Failed to check config existence: ${key}`, error);
+      this.logger.error(`Failed to check config existence: ${key}`, LogContext.CONFIG, undefined, error);
       return false;
     }
   }
@@ -231,7 +236,7 @@ export class ConfigurationService implements IConfigurationService {
       }
       return keys;
     } catch (error) {
-      this.logger.error('Failed to get config keys', error);
+      this.logger.error('Failed to get config keys', LogContext.CONFIG, undefined, error);
       return [];
     }
   }
@@ -242,7 +247,7 @@ export class ConfigurationService implements IConfigurationService {
       const value = this.configs.get(fullKey);
       return value !== undefined ? value as T : defaultValue as T;
     } catch (error) {
-      this.logger.error(`Failed to get config sync: ${key}`, error);
+      this.logger.error(`Failed to get config sync: ${key}`, LogContext.CONFIG, undefined, error);
       return defaultValue as T;
     }
   }
@@ -254,7 +259,7 @@ export class ConfigurationService implements IConfigurationService {
       this.changeCount++;
       return true;
     } catch (error) {
-      this.logger.error(`Failed to set config sync: ${key}`, error);
+      this.logger.error(`Failed to set config sync: ${key}`, LogContext.CONFIG, undefined, error);
       return false;
     }
   }
@@ -266,7 +271,7 @@ export class ConfigurationService implements IConfigurationService {
         const value = await this.get(key, options);
         result[typeof key === 'string' ? key : key.key] = value;
       } catch (error) {
-        this.logger.error(`Failed to get batch config: ${key}`, error);
+        this.logger.error(`Failed to get batch config: ${key}`, LogContext.CONFIG, undefined, error);
       }
     }
     return result;
@@ -279,7 +284,7 @@ export class ConfigurationService implements IConfigurationService {
         const success = await this.set(key, value, options);
         if (success) successCount++;
       } catch (error) {
-        this.logger.error(`Failed to set batch config: ${key}`, error);
+        this.logger.error(`Failed to set batch config: ${key}`, LogContext.CONFIG, undefined, error);
       }
     }
     return successCount;
@@ -296,7 +301,7 @@ export class ConfigurationService implements IConfigurationService {
         validationRules: rules,
       };
     } catch (error) {
-      this.logger.error(`Failed to validate config: ${key}`, error);
+      this.logger.error(`Failed to validate config: ${key}`, LogContext.CONFIG, undefined, error);
       return {
         isValid: false,
         errors: [error.message],
@@ -312,7 +317,7 @@ export class ConfigurationService implements IConfigurationService {
       const result = await this.encryptionService.encrypt(value);
       return result.encryptedData;
     } catch (error) {
-      this.logger.error('Failed to encrypt config value', error);
+      this.logger.error('Failed to encrypt config value', LogContext.CONFIG, undefined, error);
       throw error;
     }
   }
@@ -322,7 +327,7 @@ export class ConfigurationService implements IConfigurationService {
       const result = await this.encryptionService.decrypt(encryptedValue);
       return result.decryptedData;
     } catch (error) {
-      this.logger.error('Failed to decrypt config value', error);
+      this.logger.error('Failed to decrypt config value', LogContext.CONFIG, undefined, error);
       throw error;
     }
   }

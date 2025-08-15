@@ -1,7 +1,7 @@
 ---
 description: 前置提示
 globs:
-alwaysApply: true
+alwaysApply: false
 ---
 
 - 你是一个全栈工程师，精通TypeScript语言，有丰富的node.js开发经验。

@@ -14,406 +14,335 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { DomainEvent } from '../event-sourcing/event-sourced-aggregate';
 
 /**
- * @interface RequestContext
- * @description 请求上下文接口，用于事件追踪
- */
-export interface RequestContext {
-  /** 请求ID */
-  requestId?: string;
-  /** 租户ID */
-  tenantId?: string;
-  /** 用户ID */
-  userId?: string;
-  /** 会话ID */
-  sessionId?: string;
-  /** 关联ID */
-  correlationId?: string;
-  /** 时间戳 */
-  timestamp: Date;
-  /** 用户代理 */
-  userAgent?: string;
-  /** IP地址 */
-  ipAddress?: string;
-  /** 额外元数据 */
-  metadata?: Record<string, any>;
-}
-
-/**
- * @interface EventMetadata
- * @description 事件元数据接口
- */
-export interface EventMetadata {
-  /** 事件ID */
-  eventId: string;
-  /** 事件类型 */
-  eventType: string;
-  /** 事件版本 */
-  eventVersion: number;
-  /** 聚合ID */
-  aggregateId: string;
-  /** 聚合类型 */
-  aggregateType: string;
-  /** 聚合版本 */
-  aggregateVersion: number;
-  /** 发生时间 */
-  occurredOn: Date;
-  /** 请求上下文 */
-  requestContext?: RequestContext;
-  /** 额外元数据 */
-  metadata?: Record<string, any>;
-}
-
-/**
- * @interface IEvent
- * @description 事件接口，定义事件的基本契约
- */
-export interface IEvent {
-  /** 事件元数据 */
-  readonly metadata: EventMetadata;
-
-  /** 获取事件ID */
-  getEventId(): string;
-  /** 获取事件类型 */
-  getEventType(): string;
-  /** 获取事件版本 */
-  getEventVersion(): number;
-  /** 获取聚合ID */
-  getAggregateId(): string;
-  /** 获取聚合类型 */
-  getAggregateType(): string;
-  /** 获取聚合版本 */
-  getAggregateVersion(): number;
-  /** 获取发生时间 */
-  getOccurredOn(): Date;
-  /** 获取请求上下文 */
-  getRequestContext(): RequestContext | undefined;
-  /** 验证事件有效性 */
-  validate(): boolean;
-  /** 转换为JSON */
-  toJSON(): Record<string, any>;
-}
-
-/**
- * @abstract BaseEvent
- * @description 事件基础抽象类
+ * @abstract class BaseDomainEvent
+ * @description 基础领域事件类，为所有领域事件提供通用实现
  * 
- * 提供所有领域事件的通用功能，包括：
- * - 事件元数据管理
- * - 事件版本控制
- * - 事件序列化
- * - 事件验证
- * - 请求上下文追踪
+ * 核心功能：
+ * 1. 提供事件的基本属性
+ * 2. 自动生成事件ID和时间戳
+ * 3. 支持事件元数据和上下文信息
+ * 4. 提供事件序列化和反序列化
+ * 
+ * 设计原则：
+ * - 所有领域事件都继承自此类
+ * - 事件是不可变的，一旦创建就不能修改
+ * - 事件包含完整的上下文信息
+ * - 支持事件版本管理和兼容性
  */
-export abstract class BaseEvent implements IEvent {
-  /** 事件元数据 */
-  protected readonly _metadata: EventMetadata;
+export abstract class BaseDomainEvent implements DomainEvent {
+  public readonly eventId: string;
+  public readonly occurredOn: Date;
+  public readonly eventVersion: number;
+  public readonly metadata: Record<string, any>;
+  public readonly correlationId?: string;
+  public readonly causationId?: string;
 
-  /**
-   * @constructor
-   * @param aggregateId 聚合ID
-   * @param aggregateType 聚合类型
-   * @param aggregateVersion 聚合版本
-   * @param requestContext 请求上下文
-   * @param metadata 额外元数据
-   */
   constructor(
-    aggregateId: string,
-    aggregateType: string,
-    aggregateVersion: number,
-    requestContext?: RequestContext,
-    metadata?: Record<string, any>
+    public readonly aggregateId: string,
+    public readonly eventType: string,
+    public readonly eventData: Record<string, any>,
+    options: {
+      eventVersion?: number;
+      metadata?: Record<string, any>;
+      correlationId?: string;
+      causationId?: string;
+    } = {}
   ) {
-    this._metadata = {
-      eventId: uuidv4(),
-      eventType: this.constructor.name,
-      eventVersion: 1,
-      aggregateId,
-      aggregateType,
-      aggregateVersion,
-      occurredOn: new Date(),
-      requestContext,
-      metadata: metadata || {},
+    this.eventId = uuidv4();
+    this.occurredOn = new Date();
+    this.eventVersion = options.eventVersion || 1;
+    this.metadata = {
+      aggregateType: this.getAggregateType(),
+      timestamp: this.occurredOn.toISOString(),
+      version: this.eventVersion,
+      ...options.metadata
     };
+    this.correlationId = options.correlationId;
+    this.causationId = options.causationId;
+
+    // 验证事件数据
+    this.validateEventData();
   }
 
   /**
-   * @getter metadata
-   * @description 获取事件元数据
+   * @abstract method getAggregateType
+   * @description 获取聚合根类型，子类必须实现
+   * @returns string 聚合根类型
    */
-  get metadata(): EventMetadata {
-    return this._metadata;
-  }
+  protected abstract getAggregateType(): string;
 
   /**
-   * @method getEventId
-   * @description 获取事件ID
-   * @returns 事件ID
+   * @method validateEventData
+   * @description 验证事件数据的有效性
    */
-  getEventId(): string {
-    return this._metadata.eventId;
-  }
+  protected validateEventData(): void {
+    if (!this.aggregateId) {
+      throw new Error('Event aggregateId cannot be empty');
+    }
 
-  /**
-   * @method getEventType
-   * @description 获取事件类型
-   * @returns 事件类型
-   */
-  getEventType(): string {
-    return this._metadata.eventType;
-  }
+    if (!this.eventType) {
+      throw new Error('Event eventType cannot be empty');
+    }
 
-  /**
-   * @method getEventVersion
-   * @description 获取事件版本
-   * @returns 事件版本
-   */
-  getEventVersion(): number {
-    return this._metadata.eventVersion;
-  }
+    if (!this.eventData) {
+      throw new Error('Event eventData cannot be null or undefined');
+    }
 
-  /**
-   * @method getAggregateId
-   * @description 获取聚合ID
-   * @returns 聚合ID
-   */
-  getAggregateId(): string {
-    return this._metadata.aggregateId;
-  }
-
-  /**
-   * @method getAggregateType
-   * @description 获取聚合类型
-   * @returns 聚合类型
-   */
-  getAggregateType(): string {
-    return this._metadata.aggregateType;
-  }
-
-  /**
-   * @method getAggregateVersion
-   * @description 获取聚合版本
-   * @returns 聚合版本
-   */
-  getAggregateVersion(): number {
-    return this._metadata.aggregateVersion;
-  }
-
-  /**
-   * @method getOccurredOn
-   * @description 获取发生时间
-   * @returns 发生时间
-   */
-  getOccurredOn(): Date {
-    return this._metadata.occurredOn;
-  }
-
-  /**
-   * @method getRequestContext
-   * @description 获取请求上下文
-   * @returns 请求上下文
-   */
-  getRequestContext(): RequestContext | undefined {
-    return this._metadata.requestContext;
-  }
-
-  /**
-   * @method validate
-   * @description 验证事件有效性
-   * @returns 是否有效
-   */
-  validate(): boolean {
-    return this.validateMetadata() && this.validateEventData();
+    if (this.eventVersion < 1) {
+      throw new Error('Event version must be at least 1');
+    }
   }
 
   /**
    * @method toJSON
-   * @description 将事件转换为JSON
-   * @returns JSON对象
+   * @description 将事件转换为JSON格式
+   * @returns Record<string, any>
    */
   toJSON(): Record<string, any> {
     return {
-      metadata: this._metadata,
-      data: this.getEventData(),
+      eventId: this.eventId,
+      aggregateId: this.aggregateId,
+      eventType: this.eventType,
+      eventVersion: this.eventVersion,
+      occurredOn: this.occurredOn.toISOString(),
+      eventData: this.eventData,
+      metadata: this.metadata,
+      correlationId: this.correlationId,
+      causationId: this.causationId
     };
   }
 
   /**
-   * @method toString
-   * @description 将事件转换为字符串
-   * @returns 字符串表示
+   * @method fromJSON
+   * @description 从JSON格式创建事件（静态方法）
+   * @param json JSON数据
+   * @returns BaseDomainEvent
    */
-  toString(): string {
-    return `${this._metadata.eventType}(id=${this._metadata.eventId}, aggregateId=${this._metadata.aggregateId})`;
-  }
-
-
-
-  /**
-   * @protected getEventData
-   * @description 获取事件数据
-   * @returns 事件数据
-   */
-  protected abstract getEventData(): Record<string, any>;
-
-  /**
-   * @protected validateMetadata
-   * @description 验证事件元数据
-   * @returns 是否有效
-   */
-  protected validateMetadata(): boolean {
-    return !!(
-      this._metadata.eventId &&
-      this._metadata.eventType &&
-      this._metadata.aggregateId &&
-      this._metadata.aggregateType &&
-      this._metadata.occurredOn
-    );
+  static fromJSON(json: Record<string, any>): BaseDomainEvent {
+    // 这是一个抽象方法，子类需要实现具体的反序列化逻辑
+    throw new Error('fromJSON method must be implemented by subclasses');
   }
 
   /**
-   * @protected validateEventData
+   * @method getEventName
+   * @description 获取事件名称（用于日志和调试）
+   * @returns string
+   */
+  getEventName(): string {
+    return this.constructor.name;
+  }
+
+  /**
+   * @method getEventSummary
+   * @description 获取事件摘要（用于日志和调试）
+   * @returns string
+   */
+  getEventSummary(): string {
+    return `${this.getEventName()} for aggregate ${this.aggregateId}`;
+  }
+
+  /**
+   * @method isReplayable
+   * @description 检查事件是否可以重放
+   * @returns boolean
+   */
+  isReplayable(): boolean {
+    return true; // 默认所有事件都可以重放
+  }
+
+  /**
+   * @method getEventKey
+   * @description 获取事件键（用于去重和幂等性）
+   * @returns string
+   */
+  getEventKey(): string {
+    return `${this.aggregateId}:${this.eventType}:${this.eventVersion}`;
+  }
+
+  /**
+   * @method equals
+   * @description 比较两个事件是否相等
+   * @param other 另一个事件
+   * @returns boolean
+   */
+  equals(other: BaseDomainEvent): boolean {
+    return this.eventId === other.eventId;
+  }
+
+  /**
+   * @method clone
+   * @description 克隆事件（创建新的事件ID）
+   * @returns BaseDomainEvent
+   */
+  clone(): BaseDomainEvent {
+    // 子类需要实现具体的克隆逻辑
+    throw new Error('clone method must be implemented by subclasses');
+  }
+
+  /**
+   * @method addMetadata
+   * @description 添加元数据（创建新的事件实例）
+   * @param key 键
+   * @param value 值
+   * @returns BaseDomainEvent
+   */
+  addMetadata(key: string, value: any): BaseDomainEvent {
+    const newMetadata = { ...this.metadata, [key]: value };
+    return this.createCopyWithMetadata(newMetadata);
+  }
+
+  /**
+   * @method setCorrelationId
+   * @description 设置关联ID（创建新的事件实例）
+   * @param correlationId 关联ID
+   * @returns BaseDomainEvent
+   */
+  setCorrelationId(correlationId: string): BaseDomainEvent {
+    return this.createCopyWithOptions({ correlationId });
+  }
+
+  /**
+   * @method setCausationId
+   * @description 设置因果ID（创建新的事件实例）
+   * @param causationId 因果ID
+   * @returns BaseDomainEvent
+   */
+  setCausationId(causationId: string): BaseDomainEvent {
+    return this.createCopyWithOptions({ causationId });
+  }
+
+  /**
+   * @abstract method createCopyWithMetadata
+   * @description 创建带有新元数据的事件副本，子类必须实现
+   * @param metadata 新元数据
+   * @returns BaseDomainEvent
+   */
+  protected abstract createCopyWithMetadata(metadata: Record<string, any>): BaseDomainEvent;
+
+  /**
+   * @abstract method createCopyWithOptions
+   * @description 创建带有新选项的事件副本，子类必须实现
+   * @param options 新选项
+   * @returns BaseDomainEvent
+   */
+  protected abstract createCopyWithOptions(options: {
+    metadata?: Record<string, any>;
+    correlationId?: string;
+    causationId?: string;
+  }): BaseDomainEvent;
+}
+
+/**
+ * @interface EventFactory
+ * @description 事件工厂接口，用于创建和重建事件
+ */
+export interface EventFactory<T extends BaseDomainEvent = BaseDomainEvent> {
+  /**
+   * @method createEvent
+   * @description 创建新事件
+   * @param aggregateId 聚合根ID
+   * @param eventData 事件数据
+   * @param options 选项
+   * @returns T
+   */
+  createEvent(
+    aggregateId: string,
+    eventData: Record<string, any>,
+    options?: {
+      eventVersion?: number;
+      metadata?: Record<string, any>;
+      correlationId?: string;
+      causationId?: string;
+    }
+  ): T;
+
+  /**
+   * @method fromJSON
+   * @description 从JSON重建事件
+   * @param json JSON数据
+   * @returns T
+   */
+  fromJSON(json: Record<string, any>): T;
+
+  /**
+   * @method getEventType
+   * @description 获取事件类型
+   * @returns string
+   */
+  getEventType(): string;
+}
+
+/**
+ * @abstract class BaseEventFactory
+ * @description 基础事件工厂类，提供通用实现
+ */
+export abstract class BaseEventFactory<T extends BaseDomainEvent = BaseDomainEvent> implements EventFactory<T> {
+  /**
+   * @abstract method createEvent
+   * @description 创建新事件，子类必须实现
+   */
+  abstract createEvent(
+    aggregateId: string,
+    eventData: Record<string, any>,
+    options?: {
+      eventVersion?: number;
+      metadata?: Record<string, any>;
+      correlationId?: string;
+      causationId?: string;
+    }
+  ): T;
+
+  /**
+   * @abstract method fromJSON
+   * @description 从JSON重建事件，子类必须实现
+   */
+  abstract fromJSON(json: Record<string, any>): T;
+
+  /**
+   * @abstract method getEventType
+   * @description 获取事件类型，子类必须实现
+   */
+  abstract getEventType(): string;
+
+  /**
+   * @method validateEventData
    * @description 验证事件数据
-   * @returns 是否有效
+   * @param eventData 事件数据
    */
-  protected validateEventData(): boolean {
-    return true; // 子类可以重写此方法
-  }
-}
-
-/**
- * @abstract DomainEvent
- * @description 领域事件抽象类
- * 
- * 领域事件表示领域内发生的重要事件，用于：
- * - 通知其他聚合或领域服务
- * - 触发业务流程
- * - 记录审计日志
- * - 实现事件溯源
- */
-export abstract class DomainEvent extends BaseEvent {
-  /**
-   * @constructor
-   * @param aggregateId 聚合ID
-   * @param aggregateType 聚合类型
-   * @param aggregateVersion 聚合版本
-   * @param requestContext 请求上下文
-   * @param metadata 额外元数据
-   */
-  constructor(
-    aggregateId: string,
-    aggregateType: string,
-    aggregateVersion: number,
-    requestContext?: RequestContext,
-    metadata?: Record<string, any>
-  ) {
-    super(aggregateId, aggregateType, aggregateVersion, requestContext, metadata);
+  protected validateEventData(eventData: Record<string, any>): void {
+    if (!eventData) {
+      throw new Error('Event data cannot be null or undefined');
+    }
   }
 
   /**
-   * @method isDomainEvent
-   * @description 检查是否为领域事件
-   * @returns 是否为领域事件
+   * @method createBaseOptions
+   * @description 创建基础选项
+   * @param options 用户选项
+   * @returns 合并后的选项
    */
-  isDomainEvent(): boolean {
-    return true;
-  }
-}
-
-/**
- * @abstract IntegrationEvent
- * @description 集成事件抽象类
- * 
- * 集成事件用于跨边界上下文或外部系统的通信，包括：
- * - 跨微服务通信
- * - 外部系统集成
- * - 消息队列发布
- * - 事件总线传播
- */
-export abstract class IntegrationEvent extends BaseEvent {
-  /** 目标系统 */
-  protected readonly _targetSystem: string;
-  /** 事件优先级 */
-  protected readonly _priority: number;
-
-  /**
-   * @constructor
-   * @param aggregateId 聚合ID
-   * @param aggregateType 聚合类型
-   * @param aggregateVersion 聚合版本
-   * @param targetSystem 目标系统
-   * @param priority 事件优先级
-   * @param requestContext 请求上下文
-   * @param metadata 额外元数据
-   */
-  constructor(
-    aggregateId: string,
-    aggregateType: string,
-    aggregateVersion: number,
-    targetSystem: string,
-    priority: number = 0,
-    requestContext?: RequestContext,
-    metadata?: Record<string, any>
-  ) {
-    super(aggregateId, aggregateType, aggregateVersion, requestContext, metadata);
-    this._targetSystem = targetSystem;
-    this._priority = priority;
-  }
-
-  /**
-   * @method getTargetSystem
-   * @description 获取目标系统
-   * @returns 目标系统
-   */
-  getTargetSystem(): string {
-    return this._targetSystem;
-  }
-
-  /**
-   * @method getPriority
-   * @description 获取事件优先级
-   * @returns 事件优先级
-   */
-  getPriority(): number {
-    return this._priority;
-  }
-
-  /**
-   * @method isIntegrationEvent
-   * @description 检查是否为集成事件
-   * @returns 是否为集成事件
-   */
-  isIntegrationEvent(): boolean {
-    return true;
-  }
-
-  /**
-   * @protected validateMetadata
-   * @description 验证集成事件元数据
-   * @returns 是否有效
-   */
-  protected validateMetadata(): boolean {
-    return super.validateMetadata() && !!this._targetSystem;
-  }
-
-  /**
-   * @protected getEventData
-   * @description 获取集成事件数据
-   * @returns 事件数据
-   */
-  protected getEventData(): Record<string, any> {
+  protected createBaseOptions(options: {
+    eventVersion?: number;
+    metadata?: Record<string, any>;
+    correlationId?: string;
+    causationId?: string;
+  } = {}): {
+    eventVersion: number;
+    metadata: Record<string, any>;
+    correlationId?: string;
+    causationId?: string;
+  } {
     return {
-      targetSystem: this._targetSystem,
-      priority: this._priority,
-      ...this.getIntegrationEventData(),
+      eventVersion: options.eventVersion || 1,
+      metadata: {
+        factory: this.constructor.name,
+        ...options.metadata
+      },
+      correlationId: options.correlationId,
+      causationId: options.causationId
     };
   }
-
-  /**
-   * @protected getIntegrationEventData
-   * @description 获取集成事件特定数据
-   * @returns 集成事件数据
-   */
-  protected abstract getIntegrationEventData(): Record<string, any>;
 }

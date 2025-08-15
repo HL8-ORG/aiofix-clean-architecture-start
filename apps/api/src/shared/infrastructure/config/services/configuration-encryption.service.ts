@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import {
   IConfigurationEncryptionService,
@@ -10,6 +10,8 @@ import {
   KeyRotationResult,
   EncryptionStats,
 } from '../interfaces/configuration-encryption.interface';
+import { PinoLoggerService } from '../../logging/services/pino-logger.service';
+import { LogContext } from '../../logging/interfaces/logging.interface';
 
 /**
  * @class ConfigurationEncryptionService
@@ -28,7 +30,7 @@ import {
  */
 @Injectable()
 export class ConfigurationEncryptionService implements IConfigurationEncryptionService {
-  private readonly logger = new Logger(ConfigurationEncryptionService.name);
+  private readonly logger: PinoLoggerService;
 
   // 密钥存储
   private readonly keys: Map<string, EncryptionKey> = new Map();
@@ -56,7 +58,8 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
   private encryptionCache = new Map<string, string>();
   private decryptionCache = new Map<string, any>();
 
-  constructor() {
+  constructor(logger: PinoLoggerService) {
+    this.logger = logger;
     this.initializeDefaultKeys();
   }
 
@@ -113,7 +116,7 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
       return result;
     } catch (error) {
       this.encryptionFailures++;
-      this.logger.error('Encryption failed', error);
+      this.logger.error('Encryption failed', LogContext.CONFIG, undefined, error);
       throw error;
     }
   }
@@ -170,7 +173,7 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
       return result;
     } catch (error) {
       this.decryptionFailures++;
-      this.logger.error('Decryption failed', error);
+      this.logger.error('Decryption failed', LogContext.CONFIG, undefined, error);
       throw error;
     }
   }
@@ -234,11 +237,11 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
       };
 
       this.keys.set(keyId, key);
-      this.logger.debug(`Generated encryption key: ${keyId} for algorithm: ${algorithm}`);
+      this.logger.debug(`Generated encryption key: ${keyId} for algorithm: ${algorithm}`, LogContext.CONFIG);
 
       return key;
     } catch (error) {
-      this.logger.error('Key generation failed', error);
+      this.logger.error('Key generation failed', LogContext.CONFIG, undefined, error);
       throw error;
     }
   }
@@ -257,7 +260,7 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
 
     // 检查密钥是否过期
     if (key.expiresAt && key.expiresAt < new Date()) {
-      this.logger.warn(`Encryption key expired: ${keyId}`);
+      this.logger.warn(`Encryption key expired: ${keyId}`, LogContext.CONFIG);
       return null;
     }
 
@@ -358,7 +361,7 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
       try {
         results[key] = await this.encrypt(value, options);
       } catch (error) {
-        this.logger.error(`Batch encryption failed for key: ${key}`, error);
+        this.logger.error(`Batch encryption failed for key: ${key}`, LogContext.CONFIG, undefined, error);
       }
     }
     return results;
@@ -370,7 +373,7 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
       try {
         results[key] = await this.decrypt(encryptedValue, options);
       } catch (error) {
-        this.logger.error(`Batch decryption failed for key: ${key}`, error);
+        this.logger.error(`Batch decryption failed for key: ${key}`, LogContext.CONFIG, undefined, error);
       }
     }
     return results;
@@ -405,7 +408,11 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
   async activateKey(keyId: string): Promise<boolean> {
     const key = this.keys.get(keyId);
     if (key) {
-      key.isActive = true;
+      const updatedKey: EncryptionKey = {
+        ...key,
+        isActive: true,
+      };
+      this.keys.set(keyId, updatedKey);
       return true;
     }
     return false;
@@ -414,7 +421,11 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
   async deactivateKey(keyId: string): Promise<boolean> {
     const key = this.keys.get(keyId);
     if (key) {
-      key.isActive = false;
+      const updatedKey: EncryptionKey = {
+        ...key,
+        isActive: false,
+      };
+      this.keys.set(keyId, updatedKey);
       return true;
     }
     return false;
@@ -572,7 +583,7 @@ export class ConfigurationEncryptionService implements IConfigurationEncryptionS
         }
       }
     } catch (error) {
-      this.logger.error('Failed to initialize default keys', error);
+      this.logger.error('Failed to initialize default keys', LogContext.CONFIG, undefined, error);
     }
   }
 

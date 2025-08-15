@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   IConfigurationLoader,
@@ -9,6 +9,8 @@ import {
 } from '../interfaces/configuration-loader.interface';
 import type { ConfigValue, ConfigKey } from '../interfaces/configuration.interface';
 import { ConfigSource } from '../interfaces/configuration.interface';
+import { PinoLoggerService } from '../../logging/services/pino-logger.service';
+import { LogContext } from '../../logging/interfaces/logging.interface';
 
 /**
  * @class ConfigurationLoaderService
@@ -27,7 +29,7 @@ import { ConfigSource } from '../interfaces/configuration.interface';
  */
 @Injectable()
 export class ConfigurationLoaderService implements IConfigurationLoader {
-  private readonly logger = new Logger(ConfigurationLoaderService.name);
+  private readonly logger: PinoLoggerService;
 
   // 加载器存储
   private readonly loaders: Map<LoaderType, IConfigurationLoader> = new Map();
@@ -52,7 +54,11 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
   // 事件监听器
   private readonly eventListeners: Map<'load' | 'error' | 'refresh', Set<(event: any) => void>> = new Map();
 
-  constructor(private readonly eventEmitter: EventEmitter2) {
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    logger: PinoLoggerService
+  ) {
+    this.logger = logger;
     this.initializeDefaultLoaders();
   }
 
@@ -112,7 +118,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
       this.emitEvent('error', { key: cacheKey, error: lastError });
       return failedResult;
     } catch (error) {
-      this.logger.error(`Failed to load config: ${cacheKey}`, error);
+      this.logger.error(`Failed to load config: ${cacheKey}`, LogContext.CONFIG, undefined, error);
       const errorResult: LoaderResult<T> = {
         success: false,
         source: ConfigSource.DEFAULT,
@@ -171,7 +177,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
           preloadedCount++;
         }
       } catch (error) {
-        this.logger.warn(`Failed to preload config: ${this.buildCacheKey(key)}`, error);
+        this.logger.warn(`Failed to preload config: ${this.buildCacheKey(key)}`, LogContext.CONFIG, undefined, error);
       }
     }
 
@@ -216,7 +222,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
           refreshedCount++;
         }
       } catch (error) {
-        this.logger.warn(`Failed to refresh config: ${cacheKey}`, error);
+        this.logger.warn(`Failed to refresh config: ${cacheKey}`, LogContext.CONFIG, undefined, error);
       }
     }
 
@@ -277,7 +283,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
    */
   addLoader(loader: IConfigurationLoader, options: LoaderOptions): boolean {
     if (this.loaders.has(options.type)) {
-      this.logger.warn(`Loader type ${options.type} already exists, replacing...`);
+      this.logger.warn(`Loader type ${options.type} already exists, replacing...`, LogContext.CONFIG);
     }
 
     this.loaders.set(options.type, loader);
@@ -289,7 +295,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
       totalLoadTime: 0,
     });
 
-    this.logger.log(`Added loader: ${options.type} with priority ${options.priority}`);
+    this.logger.info(`Added loader: ${options.type} with priority ${options.priority}`, LogContext.CONFIG);
     return true;
   }
 
@@ -305,7 +311,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
     this.stats.delete(type);
 
     if (removed) {
-      this.logger.log(`Removed loader: ${type}`);
+      this.logger.info(`Removed loader: ${type}`, LogContext.CONFIG);
     }
 
     return removed;
@@ -353,7 +359,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
     }
 
     this.loaderOptions.set(type, { ...existingOptions, ...options });
-    this.logger.log(`Updated loader options: ${type}`);
+    this.logger.info(`Updated loader options: ${type}`, LogContext.CONFIG);
     return true;
   }
 
@@ -381,7 +387,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
     }
 
     options.enabled = enabled;
-    this.logger.log(`${enabled ? 'Enabled' : 'Disabled'} loader: ${type}`);
+    this.logger.info(`${enabled ? 'Enabled' : 'Disabled'} loader: ${type}`, LogContext.CONFIG);
     return true;
   }
 
@@ -540,10 +546,10 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
         }
       }
 
-      this.logger.log('Configuration imported successfully');
+      this.logger.info('Configuration imported successfully', LogContext.CONFIG);
       return true;
     } catch (error) {
-      this.logger.error('Failed to import configuration', error);
+      this.logger.error('Failed to import configuration', LogContext.CONFIG, undefined, error);
       return false;
     }
   }
@@ -634,7 +640,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
   private initializeDefaultLoaders(): void {
     // 这里可以添加默认的加载器实现
     // 暂时为空，后续可以添加环境变量、文件等默认加载器
-    this.logger.log('Initializing default loaders...');
+    this.logger.info('Initializing default loaders...', LogContext.CONFIG);
   }
 
   /**
@@ -715,7 +721,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
         try {
           listener(event);
         } catch (error) {
-          this.logger.error(`Error in event listener for ${eventType}`, error);
+          this.logger.error(`Error in event listener for ${eventType}`, LogContext.CONFIG, undefined, error);
         }
       }
     }
@@ -773,7 +779,7 @@ export class ConfigurationLoaderService implements IConfigurationLoader {
         }
       } catch (error) {
         if (attempt < maxRetries) {
-          this.logger.warn(`Loader attempt ${attempt + 1} failed, retrying...`, error);
+          this.logger.warn(`Loader attempt ${attempt + 1} failed, retrying...`, LogContext.CONFIG, undefined, error);
           await new Promise(resolve => setTimeout(resolve, retryInterval));
         } else {
           throw error;

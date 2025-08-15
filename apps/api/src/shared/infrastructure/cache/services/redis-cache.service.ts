@@ -11,10 +11,12 @@
  * 遵循DDD和Clean Architecture原则，提供高性能的分布式缓存。
  */
 
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Inject } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Injectable, OnModuleDestroy, OnModuleInit, Inject } from '@nestjs/common';
+import Redis, { Cluster } from 'ioredis';
 import { ICacheService, CacheKey, CacheValue, CacheOptions, CacheStats, CacheHealth, CacheType, CacheStrategy } from '../interfaces/cache.interface';
-import { ICacheKeyFactory } from '../interfaces/cache.interface';
+import type { ICacheKeyFactory } from '../interfaces/cache.interface';
+import { PinoLoggerService } from '../../logging/services/pino-logger.service';
+import { LogContext } from '../../logging/interfaces/logging.interface';
 
 /**
  * @interface RedisConfig
@@ -61,8 +63,8 @@ export interface RedisConfig {
  */
 @Injectable()
 export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(RedisCacheService.name);
-  private redis: Redis;
+  private readonly logger: PinoLoggerService;
+  private redis: Redis | Cluster;
   private isConnected = false;
   private stats: CacheStats = {
     totalEntries: 0,
@@ -79,7 +81,10 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
   constructor(
     @Inject('REDIS_CONFIG') private readonly config: RedisConfig,
     @Inject('ICacheKeyFactory') private readonly keyFactory: ICacheKeyFactory,
-  ) { }
+    logger: PinoLoggerService,
+  ) {
+    this.logger = logger;
+  }
 
   /**
    * @method onModuleInit
@@ -110,7 +115,6 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
             db: this.config.db || 0,
             connectTimeout: this.config.connectTimeout || 10000,
             commandTimeout: this.config.commandTimeout || 5000,
-            retryDelayOnFailover: this.config.retryDelay || 100,
             maxRetriesPerRequest: this.config.retries || 3,
           },
         });
@@ -122,7 +126,6 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
           db: this.config.db || 0,
           connectTimeout: this.config.connectTimeout || 10000,
           commandTimeout: this.config.commandTimeout || 5000,
-          retryDelayOnFailover: this.config.retryDelay || 100,
           maxRetriesPerRequest: this.config.retries || 3,
         });
       } else {
@@ -133,41 +136,40 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
           db: this.config.db || 0,
           connectTimeout: this.config.connectTimeout || 10000,
           commandTimeout: this.config.commandTimeout || 5000,
-          retryDelayOnFailover: this.config.retryDelay || 100,
           maxRetriesPerRequest: this.config.retries || 3,
         });
       }
 
       // 监听连接事件
       this.redis.on('connect', () => {
-        this.logger.log('Redis connected');
+        this.logger.info('Redis connected', LogContext.CACHE);
         this.isConnected = true;
       });
 
       this.redis.on('ready', () => {
-        this.logger.log('Redis ready');
+        this.logger.info('Redis ready', LogContext.CACHE);
         this.isConnected = true;
       });
 
       this.redis.on('error', (error) => {
-        this.logger.error('Redis error:', error);
+        this.logger.error('Redis error', LogContext.CACHE, undefined, error);
         this.isConnected = false;
       });
 
       this.redis.on('close', () => {
-        this.logger.warn('Redis connection closed');
+        this.logger.warn('Redis connection closed', LogContext.CACHE);
         this.isConnected = false;
       });
 
       this.redis.on('reconnecting', () => {
-        this.logger.log('Redis reconnecting...');
+        this.logger.info('Redis reconnecting...', LogContext.CACHE);
       });
 
       // 等待连接建立
       await this.redis.ping();
-      this.logger.log('Redis connection established successfully');
+      this.logger.info('Redis connection established successfully', LogContext.CACHE);
     } catch (error) {
-      this.logger.error('Failed to connect to Redis:', error);
+      this.logger.error('Failed to connect to Redis', LogContext.CACHE, undefined, error);
       throw error;
     }
   }
@@ -180,7 +182,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
     if (this.redis) {
       await this.redis.quit();
       this.isConnected = false;
-      this.logger.log('Redis connection closed');
+      this.logger.info('Redis connection closed', LogContext.CACHE);
     }
   }
 
@@ -222,7 +224,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
 
       return cacheValue.value;
     } catch (error) {
-      this.logger.error('Error getting cache value:', error);
+      this.logger.error('Error getting cache value', LogContext.CACHE, undefined, error);
       this.stats.misses++;
       this.updateHitRate();
       return null;
@@ -247,7 +249,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
         createdAt: now,
         accessCount: 0,
         lastAccessed: now,
-        version: options?.version,
+        version: key.version,
         tags: key.tags,
         metadata: {
           type: CacheType.REDIS,
@@ -277,7 +279,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
 
       return true;
     } catch (error) {
-      this.logger.error('Error setting cache value:', error);
+      this.logger.error('Error setting cache value', LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -301,7 +303,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
 
       return false;
     } catch (error) {
-      this.logger.error('Error deleting cache value:', error);
+      this.logger.error('Error deleting cache value', LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -318,7 +320,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
       const result = await this.redis.exists(keyString);
       return result === 1;
     } catch (error) {
-      this.logger.error('Error checking cache key existence:', error);
+      this.logger.error('Error checking cache key existence', LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -333,7 +335,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
     try {
       if (namespace) {
         // 使用模式匹配删除指定命名空间的所有键
-        const pattern = this.keyFactory.createPattern('*', { namespace });
+        const pattern = `${namespace}:*`;
         const keys = await this.redis.keys(pattern);
 
         if (keys.length > 0) {
@@ -350,7 +352,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
 
       return true;
     } catch (error) {
-      this.logger.error('Error clearing cache:', error);
+      this.logger.error('Error clearing cache', LogContext.CACHE, undefined, error);
       return false;
     }
   }
@@ -379,7 +381,7 @@ export class RedisCacheService implements ICacheService, OnModuleInit, OnModuleD
 
       return { ...this.stats };
     } catch (error) {
-      this.logger.error('Error getting cache stats:', error);
+      this.logger.error('Error getting cache stats', LogContext.CACHE, undefined, error);
       return { ...this.stats };
     }
   }
