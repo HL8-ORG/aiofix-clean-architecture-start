@@ -562,15 +562,16 @@
 #### 3.3.2 通知通信领域 (Notification & Communication Domain)
 
 **领域职责**：
-- 邮件通知
-- 系统消息
+- 通知历史管理
 - 通知模板管理
-- 通知历史记录
+- 通知发送管理
+- 通知订阅管理
 
 **子领域划分**：
-- **email**: 邮件通知
-- **sms**: 短信通知
-- **push**: 推送通知
+- **history**: 通知历史管理
+- **templates**: 通知模板管理
+- **sending**: 通知发送管理
+- **subscriptions**: 通知订阅管理
 
 ### 3.4 领域间关系
 
@@ -646,9 +647,10 @@
 - **rules**: 规则管理
 - **history**: 历史记录
 - **approval**: 审核流程
-- **email**: 邮件通知
-- **sms**: 短信通知
-- **push**: 推送通知
+- **history**: 通知历史记录管理
+- **templates**: 通知模板管理
+- **sending**: 通知发送管理
+- **subscriptions**: 通知订阅管理
 
 #### 3.5.3 实施建议
 
@@ -1185,17 +1187,22 @@ apps/api/src/
 │   │   └── audit.module.ts
 │   │
 │   └── notifications/               # 通知领域
-│       ├── email/                   # 邮件通知子领域
+│       ├── history/                 # 通知历史管理子领域
 │       │   ├── domain/
 │       │   ├── application/
 │       │   ├── infrastructure/
 │       │   └── presentation/
-│       ├── sms/                     # 短信通知子领域
+│       ├── templates/               # 通知模板管理子领域
 │       │   ├── domain/
 │       │   ├── application/
 │       │   ├── infrastructure/
 │       │   └── presentation/
-│       ├── push/                    # 推送通知子领域
+│       ├── sending/                 # 通知发送管理子领域
+│       │   ├── domain/
+│       │   ├── application/
+│       │   ├── infrastructure/
+│       │   └── presentation/
+│       ├── subscriptions/           # 通知订阅管理子领域
 │       │   ├── domain/
 │       │   ├── application/
 │       │   ├── infrastructure/

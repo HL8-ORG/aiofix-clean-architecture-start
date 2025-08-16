@@ -42,3 +42,4 @@ async function bootstrap() {
 bootstrap();
 
 ```
+- 修改代码时应当同时修改相应的注释，确保代码与注释一致。

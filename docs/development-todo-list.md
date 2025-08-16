@@ -1010,59 +1010,118 @@
 
 ### 3.10 通知领域 (Notifications Domain)
 
-#### 3.10.1 邮件通知子领域
-- [ ] **领域实体开发**
-  - [ ] 创建EmailNotification聚合根
-  - [ ] 实现EmailTemplate实体
+#### 3.10.1 通知历史管理子领域 (history)
+- [x] **领域实体开发**
+  - [x] 创建NotificationHistory聚合根
+  - [x] 实现NotificationHistory实体
 
-- [ ] **值对象开发**
-  - [ ] 创建EmailId值对象
-  - [ ] 实现EmailStatus值对象
+- [x] **值对象开发**
+  - [x] 创建NotificationId值对象
+  - [x] 实现NotificationStatus值对象
+  - [x] 创建NotificationType值对象
+  - [x] 实现NotificationPriority值对象
+
+- [x] **领域服务开发**
+  - [x] 创建NotificationHistoryDomainService
+
+- [x] **领域事件开发**
+  - [x] 创建NotificationCreatedEvent
+  - [x] 创建NotificationSentEvent
+  - [x] 创建NotificationReadEvent
+
+- [x] **仓储接口开发**
+  - [x] 创建INotificationRepository接口
+
+#### 3.10.2 通知模板管理子领域 (templates)
+- [x] **领域实体开发**
+  - [x] 创建NotificationTemplate聚合根
+  - [x] 实现TemplateVariable实体
+
+- [x] **值对象开发**
+  - [x] 创建TemplateId值对象
+  - [x] 实现TemplateType值对象
+  - [x] 创建TemplateLanguage值对象
+
+- [x] **领域服务开发**
+  - [x] 创建NotificationTemplateDomainService
+
+- [x] **领域事件开发**
+  - [x] 创建TemplateCreatedEvent
+  - [x] 创建TemplateUpdatedEvent
+
+- [x] **仓储接口开发**
+  - [x] 创建INotificationTemplateRepository接口
+
+#### 3.10.3 通知发送管理子领域 (sending)
+- [x] **领域实体开发**
+  - [x] 创建NotificationSender聚合根
+  - [x] 实现SenderConfig实体
+
+- [x] **值对象开发**
+  - [x] 创建SenderId值对象
+  - [x] 实现SenderType值对象
+  - [x] 创建SenderStatus值对象
 
 - [ ] **领域服务开发**
-  - [ ] 创建EmailNotificationDomainService
+  - [ ] 创建NotificationSendingDomainService
 
-- [ ] **领域事件开发**
-  - [ ] 创建EmailSentEvent
+- [x] **领域事件开发**
+  - [x] 创建NotificationSendingStartedEvent
+  - [x] 创建NotificationSendingCompletedEvent
+  - [x] 创建NotificationSendingFailedEvent
 
-- [ ] **仓储接口开发**
-  - [ ] 创建IEmailNotificationRepository接口
+- [x] **仓储接口开发**
+  - [x] 创建INotificationSenderRepository接口
 
-#### 3.10.2 短信通知子领域
+#### 3.10.5 通知模块单元测试开发 🧪
+- [x] **值对象单元测试**
+  - [x] SenderId值对象测试 (16个测试用例)
+  - [x] SenderType值对象测试 (62个测试用例)
+  - [x] SenderStatus值对象测试 (67个测试用例)
+
+- [x] **实体单元测试**
+  - [x] SenderConfig实体测试 (28个测试用例)
+  - [x] ConfigKey值对象测试
+  - [x] ConfigValue值对象测试
+
+- [x] **领域事件单元测试**
+  - [x] NotificationSendingStartedEvent测试 (11个测试用例)
+
+- [ ] **聚合根单元测试**
+  - [ ] NotificationSender聚合根测试
+  - [ ] NotificationTemplate聚合根测试
+  - [ ] NotificationHistory聚合根测试
+
+- [ ] **领域服务单元测试**
+  - [ ] NotificationSendingDomainService测试
+  - [ ] NotificationTemplateDomainService测试
+  - [ ] NotificationHistoryDomainService测试
+
+- [ ] **仓储接口单元测试**
+  - [ ] INotificationSenderRepository测试
+  - [ ] INotificationTemplateRepository测试
+  - [ ] INotificationRepository测试
+
+#### 3.10.4 通知订阅管理子领域 (subscriptions)
 - [ ] **领域实体开发**
-  - [ ] 创建SmsNotification聚合根
-  - [ ] 实现SmsTemplate实体
+  - [ ] 创建NotificationSubscription聚合根
+  - [ ] 实现UserNotificationPreference实体
 
 - [ ] **值对象开发**
-  - [ ] 创建SmsId值对象
-  - [ ] 实现SmsStatus值对象
+  - [ ] 创建SubscriptionId值对象
+  - [ ] 实现SubscriptionType值对象
+  - [ ] 创建NotificationFrequency值对象
 
 - [ ] **领域服务开发**
-  - [ ] 创建SmsNotificationDomainService
+  - [ ] 创建NotificationSubscriptionDomainService
 
 - [ ] **领域事件开发**
-  - [ ] 创建SmsSentEvent
+  - [ ] 创建SubscriptionCreatedEvent
+  - [ ] 创建SubscriptionUpdatedEvent
+  - [ ] 创建PreferenceChangedEvent
 
 - [ ] **仓储接口开发**
-  - [ ] 创建ISmsNotificationRepository接口
-
-#### 3.10.3 推送通知子领域
-- [ ] **领域实体开发**
-  - [ ] 创建PushNotification聚合根
-  - [ ] 实现PushTemplate实体
-
-- [ ] **值对象开发**
-  - [ ] 创建PushId值对象
-  - [ ] 实现PushStatus值对象
-
-- [ ] **领域服务开发**
-  - [ ] 创建PushNotificationDomainService
-
-- [ ] **领域事件开发**
-  - [ ] 创建PushSentEvent
-
-- [ ] **仓储接口开发**
-  - [ ] 创建IPushNotificationRepository接口
+  - [ ] 创建INotificationSubscriptionRepository接口
 
 ---
 
@@ -1797,6 +1856,171 @@
   - [ ] 创建OrganizationPermissionDto
   - [ ] 实现SetOrganizationPermissionDto
 
+### 4.6 通知领域应用层
+
+#### 4.6.1 通知历史管理应用层 (history)
+- [ ] **应用服务开发**
+  - [ ] 创建NotificationHistoryApplicationService
+  - [ ] 实现INotificationHistoryApplicationService接口
+
+- [ ] **Use Cases开发**
+  - [ ] 创建CreateNotificationUseCase
+  - [ ] 实现UpdateNotificationStatusUseCase
+  - [ ] 创建GetNotificationUseCase
+  - [ ] 实现ListNotificationsUseCase
+  - [ ] 创建MarkNotificationAsReadUseCase
+  - [ ] 实现RetryNotificationUseCase
+
+- [ ] **命令开发 (Commands)**
+  - [ ] 创建CreateNotificationCommand
+  - [ ] 实现UpdateNotificationStatusCommand
+  - [ ] 创建MarkNotificationAsReadCommand
+  - [ ] 实现RetryNotificationCommand
+
+- [ ] **查询开发 (Queries)**
+  - [ ] 创建GetNotificationQuery
+  - [ ] 实现ListNotificationsQuery
+  - [ ] 创建GetNotificationHistoryQuery
+  - [ ] 实现SearchNotificationsQuery
+
+- [ ] **命令处理器开发 (Command Handlers)**
+  - [ ] 创建CreateNotificationHandler
+  - [ ] 实现UpdateNotificationStatusHandler
+  - [ ] 创建MarkNotificationAsReadHandler
+  - [ ] 实现RetryNotificationHandler
+
+- [ ] **查询处理器开发 (Query Handlers)**
+  - [ ] 创建GetNotificationHandler
+  - [ ] 实现ListNotificationsHandler
+  - [ ] 创建GetNotificationHistoryHandler
+  - [ ] 实现SearchNotificationsHandler
+
+- [ ] **DTO开发**
+  - [ ] 创建NotificationDto
+  - [ ] 实现CreateNotificationDto
+  - [ ] 创建NotificationStatusDto
+  - [ ] 实现NotificationListDto
+
+#### 4.6.2 通知模板管理应用层 (templates)
+- [ ] **应用服务开发**
+  - [ ] 创建NotificationTemplateApplicationService
+  - [ ] 实现INotificationTemplateApplicationService接口
+
+- [ ] **Use Cases开发**
+  - [ ] 创建CreateTemplateUseCase
+  - [ ] 实现UpdateTemplateUseCase
+  - [ ] 创建GetTemplateUseCase
+  - [ ] 实现ListTemplatesUseCase
+  - [ ] 创建RenderTemplateUseCase
+
+- [ ] **命令开发 (Commands)**
+  - [ ] 创建CreateTemplateCommand
+  - [ ] 实现UpdateTemplateCommand
+  - [ ] 创建DeleteTemplateCommand
+  - [ ] 实现RenderTemplateCommand
+
+- [ ] **查询开发 (Queries)**
+  - [ ] 创建GetTemplateQuery
+  - [ ] 实现ListTemplatesQuery
+  - [ ] 创建GetTemplateByTypeQuery
+  - [ ] 实现SearchTemplatesQuery
+
+- [ ] **命令处理器开发 (Command Handlers)**
+  - [ ] 创建CreateTemplateHandler
+  - [ ] 实现UpdateTemplateHandler
+  - [ ] 创建DeleteTemplateHandler
+  - [ ] 实现RenderTemplateHandler
+
+- [ ] **查询处理器开发 (Query Handlers)**
+  - [ ] 创建GetTemplateHandler
+  - [ ] 实现ListTemplatesHandler
+  - [ ] 创建GetTemplateByTypeHandler
+  - [ ] 实现SearchTemplatesHandler
+
+- [ ] **DTO开发**
+  - [ ] 创建NotificationTemplateDto
+  - [ ] 实现CreateTemplateDto
+  - [ ] 创建UpdateTemplateDto
+  - [ ] 实现TemplateListDto
+
+#### 4.6.3 通知发送管理应用层 (sending)
+- [ ] **应用服务开发**
+  - [ ] 创建NotificationSendingApplicationService
+  - [ ] 实现INotificationSendingApplicationService接口
+
+- [ ] **Use Cases开发**
+  - [ ] 创建SendNotificationUseCase
+  - [ ] 实现SendBulkNotificationUseCase
+  - [ ] 创建GetSendingStatusUseCase
+  - [ ] 实现RetryFailedNotificationUseCase
+
+- [ ] **命令开发 (Commands)**
+  - [ ] 创建SendNotificationCommand
+  - [ ] 实现SendBulkNotificationCommand
+  - [ ] 创建RetryNotificationCommand
+  - [ ] 实现CancelNotificationCommand
+
+- [ ] **查询开发 (Queries)**
+  - [ ] 创建GetSendingStatusQuery
+  - [ ] 实现GetSendingHistoryQuery
+  - [ ] 创建GetFailedNotificationsQuery
+
+- [ ] **命令处理器开发 (Command Handlers)**
+  - [ ] 创建SendNotificationHandler
+  - [ ] 实现SendBulkNotificationHandler
+  - [ ] 创建RetryNotificationHandler
+  - [ ] 实现CancelNotificationHandler
+
+- [ ] **查询处理器开发 (Query Handlers)**
+  - [ ] 创建GetSendingStatusHandler
+  - [ ] 实现GetSendingHistoryHandler
+  - [ ] 创建GetFailedNotificationsHandler
+
+- [ ] **DTO开发**
+  - [ ] 创建SendNotificationDto
+  - [ ] 实现SendingStatusDto
+  - [ ] 创建SendingHistoryDto
+  - [ ] 实现BulkNotificationDto
+
+#### 4.6.4 通知订阅管理应用层 (subscriptions)
+- [ ] **应用服务开发**
+  - [ ] 创建NotificationSubscriptionApplicationService
+  - [ ] 实现INotificationSubscriptionApplicationService接口
+
+- [ ] **Use Cases开发**
+  - [ ] 创建SubscribeToNotificationUseCase
+  - [ ] 实现UnsubscribeFromNotificationUseCase
+  - [ ] 创建UpdateNotificationPreferenceUseCase
+  - [ ] 实现GetUserSubscriptionsUseCase
+
+- [ ] **命令开发 (Commands)**
+  - [ ] 创建SubscribeToNotificationCommand
+  - [ ] 实现UnsubscribeFromNotificationCommand
+  - [ ] 创建UpdateNotificationPreferenceCommand
+  - [ ] 实现SetNotificationFrequencyCommand
+
+- [ ] **查询开发 (Queries)**
+  - [ ] 创建GetUserSubscriptionsQuery
+  - [ ] 实现GetNotificationPreferencesQuery
+  - [ ] 创建GetSubscriptionStatusQuery
+
+- [ ] **命令处理器开发 (Command Handlers)**
+  - [ ] 创建SubscribeToNotificationHandler
+  - [ ] 实现UnsubscribeFromNotificationHandler
+  - [ ] 创建UpdateNotificationPreferenceHandler
+  - [ ] 实现SetNotificationFrequencyHandler
+
+- [ ] **查询处理器开发 (Query Handlers)**
+  - [ ] 创建GetUserSubscriptionsHandler
+  - [ ] 实现GetNotificationPreferencesHandler
+  - [ ] 创建GetSubscriptionStatusHandler
+
+- [ ] **DTO开发**
+  - [ ] 创建NotificationSubscriptionDto
+  - [ ] 实现SubscribeToNotificationDto
+  - [ ] 创建NotificationPreferenceDto
+  - [ ] 实现SubscriptionStatusDto
+
 ---
 
 ## 🏗️ 基础设施层开发
@@ -1929,9 +2153,10 @@
   - [ ] 创建EventReplayEntity
 
 - [ ] **通知实体**
-  - [ ] 创建EmailNotificationEntity
-  - [ ] 实现SmsNotificationEntity
-  - [ ] 创建PushNotificationEntity
+  - [ ] 创建NotificationEntity
+  - [ ] 实现NotificationTemplateEntity
+  - [ ] 创建NotificationSenderEntity
+  - [ ] 实现NotificationSubscriptionEntity
 
 ### 5.2 仓储实现开发
 
@@ -2037,15 +2262,17 @@
   - [ ] 实现EventReplayRepository
 
 - [ ] **通知仓储**
-  - [ ] 实现EmailNotificationRepository
-  - [ ] 创建SmsNotificationRepository
-  - [ ] 实现PushNotificationRepository
+  - [ ] 实现NotificationRepository
+  - [ ] 创建NotificationTemplateRepository
+  - [ ] 实现NotificationSenderRepository
+  - [ ] 创建NotificationSubscriptionRepository
 
 ### 5.3 外部服务集成
-- [ ] **邮件服务集成**
-  - [ ] 创建EmailService
-  - [ ] 实现邮件模板管理
-  - [ ] 创建邮件发送队列
+- [ ] **通知服务集成**
+  - [ ] 创建EmailNotificationAdapter
+  - [ ] 实现SmsNotificationAdapter
+  - [ ] 创建PushNotificationAdapter
+  - [ ] 实现通知发送队列
 
 - [ ] **通知服务集成**
   - [ ] 创建NotificationService
@@ -2549,6 +2776,42 @@
   - 补充Passport策略设计: JwtStrategy、LocalStrategy、MfaStrategy
   - 添加认证守卫设计: JwtAuthGuard、LocalAuthGuard、MfaAuthGuard
   - 完善CASL集成设计: CaslGuard、权限装饰器、权限拦截器
+- ✅ 完成通知领域子领域重新划分 ⭐ 新增
+  - 按业务子领域重新组织notifications模块目录结构
+  - 通知历史管理子领域: history
+  - 通知模板管理子领域: templates
+  - 通知发送管理子领域: sending
+  - 通知订阅管理子领域: subscriptions
+  - 统一与用户领域相同的目录结构（子领域优先）
+  - 更新iam-system-overview-design.md和development-todo-list.md
+  - 符合DDD和Clean Architecture原则
+  - 提升业务内聚性和技术解耦性
+
+- ✅ 完成通知历史管理子领域基础开发 ⭐ 新增
+  - 创建NotificationId、NotificationStatus、NotificationType、NotificationPriority值对象
+  - 更新Notification聚合根，使用新的值对象
+  - 创建INotificationRepository仓储接口
+  - 实现完整的通知状态管理和生命周期
+  - 支持事件溯源和快照管理
+  - 符合DDD和Clean Architecture原则
+
+- ✅ 完成通知历史管理子领域完整开发 ⭐ 新增
+  - 创建NotificationCreatedEvent、NotificationSentEvent、NotificationReadEvent领域事件
+  - 创建NotificationHistoryDomainService领域服务
+  - 实现通知历史查询、统计、趋势分析功能
+  - 支持通知访问权限验证和数据清理
+  - 开始通知模板管理子领域开发
+  - 创建TemplateId、TemplateType值对象
+  - 符合DDD和Clean Architecture原则
+
+- ✅ 完成通知模板管理子领域基础开发 ⭐ 新增
+  - 创建TemplateId、TemplateType、TemplateLanguage值对象
+  - 创建TemplateVariable实体，支持多种变量类型和验证
+  - 创建NotificationTemplate聚合根，支持完整的模板生命周期管理
+  - 实现模板状态管理（草稿、激活、非激活、归档）
+  - 支持模板变量定义、验证和格式化
+  - 实现事件溯源和快照管理
+  - 符合DDD和Clean Architecture原则
   - 更新项目目录结构，增加strategies、guards、decorators、interceptors子领域
   - 补充认证领域开发任务: Passport策略开发、认证守卫开发
   - 补充授权领域开发任务: 权限守卫开发、权限装饰器开发、权限拦截器开发
@@ -2670,11 +2933,47 @@
   - 创建提交申请命令处理器
   - 实现完整的CQRS架构支持
   - 支持事件溯源和业务规则验证
+- ✅ 修复通知模板管理子领域编译错误 ⭐ 新增
+  - 修复TemplateVariable实体导入错误，将Entity改为IEntity
+  - 修复TemplateVariable类继承问题，改为实现IEntity接口
+  - 移除不必要的super()调用，避免编译错误
+  - 确保通知模板管理子领域代码质量
+  - 保持与DDD和Clean Architecture原则一致
+  - 修复NotificationHistoryDomainService日志参数顺序问题
+  - 统一使用LogContext.BUSINESS作为日志上下文
+  - 确保所有logger.info调用参数顺序正确
+  - 完成通知模板管理子领域完整开发
+  - 实现模板CRUD、变量验证、渲染等核心功能
 - 🔄 完善申请通知机制
 - 🔄 增强审核权限验证
 - 🔄 扩展MongoDB适配器实现
 - 🔄 应用层单元测试开发
 - 🔄 修复剩余测试依赖注入问题
+- ✅ 完成通知模板管理子领域开发 ⭐ 新增
+  - 创建TemplateCreatedEvent、TemplateUpdatedEvent领域事件
+  - 创建INotificationTemplateRepository仓储接口
+  - 创建NotificationTemplateDomainService领域服务
+  - 实现完整的模板CRUD操作和业务逻辑
+  - 支持模板变量验证和渲染功能
+  - 实现模板统计和分析功能
+  - 符合DDD和Clean Architecture原则
+- ✅ 完成通知发送管理子领域基础开发 ⭐ 新增
+  - 创建SenderId、SenderType、SenderStatus值对象
+  - 创建NotificationSender聚合根和SenderConfig实体
+  - 创建NotificationSendingStartedEvent、NotificationSendingCompletedEvent、NotificationSendingFailedEvent领域事件
+  - 创建INotificationSenderRepository仓储接口
+
+- ✅ 完成通知模块单元测试开发 ⭐ 新增
+  - 值对象单元测试: SenderId (16个测试用例)、SenderType (62个测试用例)、SenderStatus (67个测试用例)
+  - 实体单元测试: SenderConfig (28个测试用例)、ConfigKey、ConfigValue
+  - 领域事件单元测试: NotificationSendingStartedEvent (11个测试用例)
+  - 总计: 106个测试用例，全部通过
+  - 覆盖值对象验证、实体业务逻辑、事件序列化等核心功能
+  - 确保代码质量和业务逻辑正确性
+  - 为后续开发提供可靠的测试基础
+  - 支持多种发送类型（邮件、短信、推送、Webhook等）
+  - 实现完整的状态管理和配置验证
+  - 支持性能监控和重试机制
 
 ---
 
