@@ -1,3 +1,5 @@
+import { StringValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class TenantCode
  * @description 租户代码值对象
@@ -8,19 +10,14 @@
  * - 长度在3-50个字符之间
  * - 不能以数字开头
  * - 不能包含连续的下划线或连字符
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承StringValueObject基类，获得字符串值对象的通用功能
+ * 2. 实现自定义的验证逻辑，确保租户代码符合命名规范
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class TenantCode {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 租户代码值
-   */
-  constructor(value: string) {
-    this.validate(value);
-    this._value = value; // 保持原始大小写
-  }
+export class TenantCode extends StringValueObject {
 
   /**
    * @method create
@@ -33,12 +30,13 @@ export class TenantCode {
   }
 
   /**
-   * @method validate
+   * @protected isValidValue
    * @description 验证租户代码的有效性
    * @param value 租户代码值
+   * @returns boolean 是否有效
    * @throws Error 当值无效时抛出异常
    */
-  private validate(value: string): void {
+  protected isValidValue(value: string): boolean {
     if (!value || value.trim().length === 0) {
       throw new Error('Tenant code cannot be empty');
     }
@@ -66,35 +64,8 @@ export class TenantCode {
     if (value.endsWith('-') || value.endsWith('_')) {
       throw new Error('Tenant code cannot end with a hyphen or underscore');
     }
-  }
 
-  /**
-   * @method equals
-   * @description 比较两个租户代码是否相等
-   * @param other 另一个租户代码
-   * @returns boolean
-   */
-  equals(other: TenantCode): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取租户代码值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
+    return true;
   }
 
   /**
@@ -103,24 +74,24 @@ export class TenantCode {
    * @returns boolean
    */
   isSystemCode(): boolean {
-    return this._value === 'SYSTEM';
+    return this.value === 'SYSTEM';
   }
 
   /**
    * @method toUpperCase
    * @description 转换为大写形式
-   * @returns string
+   * @returns TenantCode
    */
-  toUpperCase(): string {
-    return this._value.toUpperCase();
+  toUpperCase(): TenantCode {
+    return new TenantCode(this.value.toUpperCase());
   }
 
   /**
    * @method toLowerCase
    * @description 转换为小写形式
-   * @returns string
+   * @returns TenantCode
    */
-  toLowerCase(): string {
-    return this._value.toLowerCase();
+  toLowerCase(): TenantCode {
+    return new TenantCode(this.value.toLowerCase());
   }
 }

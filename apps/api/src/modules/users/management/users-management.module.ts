@@ -4,6 +4,7 @@ import { UserEntity } from './infrastructure/postgresql/entities/user.entity';
 import { UserRepository } from './infrastructure/postgresql/repositories/user.repository';
 import { UserDomainService } from './domain/services/user-domain.service';
 import { UserMapper } from './infrastructure/postgresql/mappers/user.mapper';
+import { UserManagementApplicationModule } from './application/application.module';
 
 /**
  * @class UsersManagementModule
@@ -17,7 +18,8 @@ import { UserMapper } from './infrastructure/postgresql/mappers/user.mapper';
  */
 @Module({
   imports: [
-    MikroOrmModule.forFeature([UserEntity])
+    MikroOrmModule.forFeature([UserEntity]),
+    UserManagementApplicationModule
   ],
   providers: [
     UserRepository,
@@ -32,7 +34,8 @@ import { UserMapper } from './infrastructure/postgresql/mappers/user.mapper';
     UserRepository,
     UserDomainService,
     UserMapper,
-    'IUserRepository'
+    'IUserRepository',
+    UserManagementApplicationModule
   ]
 })
 export class UsersManagementModule { }

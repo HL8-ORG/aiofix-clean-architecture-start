@@ -19,6 +19,9 @@ export * from './application';
 // 基础设施层
 export * from './infrastructure';
 
+// 基础设施层
+export * from './infrastructure';
+
 // 数据库层
 export * from './database';
 

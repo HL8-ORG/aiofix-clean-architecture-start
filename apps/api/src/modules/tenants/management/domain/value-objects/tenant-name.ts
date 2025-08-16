@@ -1,3 +1,5 @@
+import { StringValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class TenantName
  * @description 租户名称值对象
@@ -8,19 +10,14 @@
  * - 不能包含特殊字符（除了空格、连字符、括号）
  * - 不能以空格开头或结尾
  * - 不能包含连续的空格
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承StringValueObject基类，获得字符串值对象的通用功能
+ * 2. 实现自定义的验证逻辑，确保租户名称符合命名规范
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class TenantName {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 租户名称值
-   */
-  constructor(value: string) {
-    this.validate(value);
-    this._value = this.normalize(value);
-  }
+export class TenantName extends StringValueObject {
 
   /**
    * @method create
@@ -33,12 +30,13 @@ export class TenantName {
   }
 
   /**
-   * @method validate
+   * @protected isValidValue
    * @description 验证租户名称的有效性
    * @param value 租户名称值
+   * @returns boolean 是否有效
    * @throws Error 当值无效时抛出异常
    */
-  private validate(value: string): void {
+  protected isValidValue(value: string): boolean {
     if (!value || value.trim().length === 0) {
       throw new Error('Tenant name cannot be empty');
     }
@@ -71,15 +69,17 @@ export class TenantName {
     if (value.trim().length === 0) {
       throw new Error('Tenant name cannot contain only spaces');
     }
+
+    return true;
   }
 
   /**
-   * @method normalize
+   * @protected transformValue
    * @description 标准化租户名称
    * @param value 原始值
    * @returns string 标准化后的值
    */
-  private normalize(value: string): string {
+  protected transformValue(value: string): string {
     // 去除首尾空格
     let normalized = value.trim();
 
@@ -93,50 +93,21 @@ export class TenantName {
   }
 
   /**
-   * @method equals
-   * @description 比较两个租户名称是否相等
-   * @param other 另一个租户名称
-   * @returns boolean
-   */
-  equals(other: TenantName): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取租户名称值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
-  }
-
-  /**
    * @method toUpperCase
    * @description 转换为大写形式
-   * @returns string
+   * @returns TenantName
    */
-  toUpperCase(): string {
-    return this._value.toUpperCase();
+  toUpperCase(): TenantName {
+    return new TenantName(this.value.toUpperCase());
   }
 
   /**
    * @method toLowerCase
    * @description 转换为小写形式
-   * @returns string
+   * @returns TenantName
    */
-  toLowerCase(): string {
-    return this._value.toLowerCase();
+  toLowerCase(): TenantName {
+    return new TenantName(this.value.toLowerCase());
   }
 
   /**
@@ -145,7 +116,7 @@ export class TenantName {
    * @returns string
    */
   getInitials(): string {
-    return this._value
+    return this.value
       .split(' ')
       .map(word => word.charAt(0).toUpperCase())
       .join('');
@@ -157,6 +128,6 @@ export class TenantName {
    * @returns number
    */
   getWordCount(): number {
-    return this._value.split(' ').length;
+    return this.value.split(' ').length;
   }
 }

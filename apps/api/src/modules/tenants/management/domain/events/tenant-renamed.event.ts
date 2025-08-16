@@ -118,7 +118,13 @@ export class TenantRenamedEvent extends BaseDomainEvent {
   protected createCopyWithMetadata(metadata: Record<string, any>): TenantRenamedEvent {
     return new TenantRenamedEvent(
       this.aggregateId,
-      this.eventData,
+      this.eventData as {
+        tenantId: string;
+        oldName: string;
+        newName: string;
+        renamedAt: string;
+        renamedBy: string;
+      },
       {
         eventVersion: this.eventVersion,
         metadata,
@@ -141,7 +147,13 @@ export class TenantRenamedEvent extends BaseDomainEvent {
   }): TenantRenamedEvent {
     return new TenantRenamedEvent(
       this.aggregateId,
-      this.eventData,
+      this.eventData as {
+        tenantId: string;
+        oldName: string;
+        newName: string;
+        renamedAt: string;
+        renamedBy: string;
+      },
       {
         eventVersion: this.eventVersion,
         metadata: { ...this.metadata, ...options.metadata },
@@ -159,7 +171,13 @@ export class TenantRenamedEvent extends BaseDomainEvent {
   clone(): TenantRenamedEvent {
     return new TenantRenamedEvent(
       this.aggregateId,
-      this.eventData,
+      this.eventData as {
+        tenantId: string;
+        oldName: string;
+        newName: string;
+        renamedAt: string;
+        renamedBy: string;
+      },
       {
         eventVersion: this.eventVersion,
         metadata: this.metadata,

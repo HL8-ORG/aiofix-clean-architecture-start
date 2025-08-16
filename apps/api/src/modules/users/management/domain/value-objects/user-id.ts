@@ -1,3 +1,5 @@
+import { StringValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class UserId
  * @description 用户ID值对象
@@ -7,20 +9,14 @@
  * - 相等性：通过值判断相等，而不是引用
  * - 自验证：在创建时验证值的有效性
  * - 无副作用：不包含业务逻辑
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承StringValueObject基类，获得字符串值对象的通用功能
+ * 2. 实现自定义的验证逻辑，确保用户ID符合UUID格式
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class UserId {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 构造函数，支持直接实例化
-   * @param value 用户ID值
-   */
-  constructor(value: string) {
-    this.validate(value);
-    this._value = value;
-  }
-
+export class UserId extends StringValueObject {
   /**
    * @method create
    * @description 创建用户ID的工厂方法
@@ -32,12 +28,13 @@ export class UserId {
   }
 
   /**
-   * @method validate
+   * @protected isValidValue
    * @description 验证用户ID的有效性
    * @param value 用户ID值
+   * @returns boolean 是否有效
    * @throws Error 当值无效时抛出异常
    */
-  private validate(value: string): void {
+  protected isValidValue(value: string): boolean {
     if (!value || value.trim().length === 0) {
       throw new Error('User ID cannot be empty');
     }
@@ -51,34 +48,7 @@ export class UserId {
     if (!uuidRegex.test(value)) {
       throw new Error('User ID must be a valid UUID');
     }
-  }
 
-  /**
-   * @method equals
-   * @description 比较两个用户ID是否相等
-   * @param other 另一个用户ID
-   * @returns boolean
-   */
-  equals(other: UserId): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取用户ID值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
+    return true;
   }
 }

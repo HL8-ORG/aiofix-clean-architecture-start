@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Tenant } from '../entities/tenant.entity';
-import { ITenantRepository } from '../repositories/tenant-repository.interface';
+import type { ITenantRepository } from '../repositories/tenant-repository.interface';
 import { TenantId } from '../value-objects/tenant-id';
 import { TenantCode } from '../value-objects/tenant-code';
 import { TenantName } from '../value-objects/tenant-name';
 import { TenantStatus } from '../value-objects/tenant-status';
-import { UserId } from '../../../users/management/domain/value-objects/user-id';
+import { UserId } from '@/modules/users/management/domain/value-objects/user-id';
+import type { TenantStats } from '../repositories/tenant-repository.interface';
 
 /**
  * @class TenantDomainService

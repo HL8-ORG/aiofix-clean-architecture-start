@@ -1,3 +1,5 @@
+import { EnumValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @enum TenantStatusEnum
  * @description 租户状态枚举
@@ -18,19 +20,14 @@ export enum TenantStatusEnum {
  * - 状态值必须是预定义的枚举值
  * - 状态转换有特定的业务规则
  * - 系统租户不能被设置为INACTIVE或DELETED状态
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承EnumValueObject基类，获得枚举值对象的通用功能
+ * 2. 实现getValidValues方法，提供有效的枚举值列表
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class TenantStatus {
-  private readonly _value: TenantStatusEnum;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 租户状态值
-   */
-  constructor(value: TenantStatusEnum) {
-    this.validate(value);
-    this._value = value;
-  }
+export class TenantStatus extends EnumValueObject<TenantStatusEnum> {
 
   /**
    * @method create
@@ -43,44 +40,12 @@ export class TenantStatus {
   }
 
   /**
-   * @method validate
-   * @description 验证租户状态的有效性
-   * @param value 租户状态值
-   * @throws Error 当值无效时抛出异常
+   * @protected getValidValues
+   * @description 获取有效的枚举值列表
+   * @returns 有效的枚举值数组
    */
-  private validate(value: TenantStatusEnum): void {
-    if (!Object.values(TenantStatusEnum).includes(value)) {
-      throw new Error(`Invalid tenant status: ${value}`);
-    }
-  }
-
-  /**
-   * @method equals
-   * @description 比较两个租户状态是否相等
-   * @param other 另一个租户状态
-   * @returns boolean
-   */
-  equals(other: TenantStatus): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取租户状态值
-   * @returns TenantStatusEnum
-   */
-  get value(): TenantStatusEnum {
-    return this._value;
+  protected getValidValues(): TenantStatusEnum[] {
+    return Object.values(TenantStatusEnum);
   }
 
   /**
@@ -89,7 +54,7 @@ export class TenantStatus {
    * @returns boolean
    */
   isActive(): boolean {
-    return this._value === TenantStatusEnum.ACTIVE;
+    return this.value === TenantStatusEnum.ACTIVE;
   }
 
   /**
@@ -98,7 +63,7 @@ export class TenantStatus {
    * @returns boolean
    */
   isInactive(): boolean {
-    return this._value === TenantStatusEnum.INACTIVE;
+    return this.value === TenantStatusEnum.INACTIVE;
   }
 
   /**
@@ -107,7 +72,7 @@ export class TenantStatus {
    * @returns boolean
    */
   isSuspended(): boolean {
-    return this._value === TenantStatusEnum.SUSPENDED;
+    return this.value === TenantStatusEnum.SUSPENDED;
   }
 
   /**
@@ -116,7 +81,7 @@ export class TenantStatus {
    * @returns boolean
    */
   isPending(): boolean {
-    return this._value === TenantStatusEnum.PENDING;
+    return this.value === TenantStatusEnum.PENDING;
   }
 
   /**
@@ -125,7 +90,7 @@ export class TenantStatus {
    * @returns boolean
    */
   isDeleted(): boolean {
-    return this._value === TenantStatusEnum.DELETED;
+    return this.value === TenantStatusEnum.DELETED;
   }
 
   /**
@@ -134,9 +99,9 @@ export class TenantStatus {
    * @returns boolean
    */
   canBeActivated(): boolean {
-    return this._value === TenantStatusEnum.INACTIVE ||
-      this._value === TenantStatusEnum.SUSPENDED ||
-      this._value === TenantStatusEnum.PENDING;
+    return this.value === TenantStatusEnum.INACTIVE ||
+      this.value === TenantStatusEnum.SUSPENDED ||
+      this.value === TenantStatusEnum.PENDING;
   }
 
   /**
@@ -145,8 +110,8 @@ export class TenantStatus {
    * @returns boolean
    */
   canBeDeactivated(): boolean {
-    return this._value === TenantStatusEnum.ACTIVE ||
-      this._value === TenantStatusEnum.SUSPENDED;
+    return this.value === TenantStatusEnum.ACTIVE ||
+      this.value === TenantStatusEnum.SUSPENDED;
   }
 
   /**
@@ -155,7 +120,7 @@ export class TenantStatus {
    * @returns boolean
    */
   canBeSuspended(): boolean {
-    return this._value === TenantStatusEnum.ACTIVE;
+    return this.value === TenantStatusEnum.ACTIVE;
   }
 
   /**
@@ -164,8 +129,8 @@ export class TenantStatus {
    * @returns boolean
    */
   canBeDeleted(): boolean {
-    return this._value === TenantStatusEnum.INACTIVE ||
-      this._value === TenantStatusEnum.SUSPENDED;
+    return this.value === TenantStatusEnum.INACTIVE ||
+      this.value === TenantStatusEnum.SUSPENDED;
   }
 
   /**
@@ -181,7 +146,7 @@ export class TenantStatus {
       [TenantStatusEnum.PENDING]: '待审核',
       [TenantStatusEnum.DELETED]: '已删除'
     };
-    return displayNames[this._value] || this._value;
+    return displayNames[this.value] || this.value;
   }
 
   /**
@@ -197,7 +162,7 @@ export class TenantStatus {
       [TenantStatusEnum.PENDING]: '租户申请待审核',
       [TenantStatusEnum.DELETED]: '租户已被删除'
     };
-    return descriptions[this._value] || '';
+    return descriptions[this.value] || '';
   }
 
   // 静态工厂方法

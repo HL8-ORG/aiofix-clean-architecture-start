@@ -1,3 +1,5 @@
+import { StringValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class Email
  * @description 邮箱值对象
@@ -12,19 +14,14 @@
  * - 邮箱地址必须全局唯一
  * - 邮箱格式必须符合RFC标准
  * - 邮箱长度不能超过254个字符
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承StringValueObject基类，获得字符串值对象的通用功能
+ * 2. 实现自定义的验证逻辑，确保邮箱符合RFC标准
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class Email {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 邮箱地址
-   */
-  private constructor(value: string) {
-    this.validate(value);
-    this._value = value.toLowerCase().trim();
-  }
+export class Email extends StringValueObject {
 
   /**
    * @method create
@@ -37,12 +34,13 @@ export class Email {
   }
 
   /**
-   * @method validate
+   * @protected isValidValue
    * @description 验证邮箱地址的有效性
    * @param value 邮箱地址
+   * @returns boolean 是否有效
    * @throws Error 当值无效时抛出异常
    */
-  private validate(value: string): void {
+  protected isValidValue(value: string): boolean {
     if (!value || value.trim().length === 0) {
       throw new Error('Email cannot be empty');
     }
@@ -90,35 +88,18 @@ export class Email {
     if (topLevelDomain.length < 2) {
       throw new Error('Top-level domain must be at least 2 characters');
     }
+
+    return true;
   }
 
   /**
-   * @method equals
-   * @description 比较两个邮箱是否相等
-   * @param other 另一个邮箱
-   * @returns boolean
+   * @protected transformValue
+   * @description 转换邮箱地址值（转换为小写并去除首尾空格）
+   * @param value 原始邮箱地址值
+   * @returns 转换后的邮箱地址值
    */
-  equals(other: Email): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取邮箱地址值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
+  protected transformValue(value: string): string {
+    return value.toLowerCase().trim();
   }
 
   /**
@@ -127,7 +108,7 @@ export class Email {
    * @returns string
    */
   getDomain(): string {
-    return this._value.split('@')[1];
+    return this.value.split('@')[1];
   }
 
   /**
@@ -136,7 +117,7 @@ export class Email {
    * @returns string
    */
   getLocalPart(): string {
-    return this._value.split('@')[0];
+    return this.value.split('@')[0];
   }
 
   /**

@@ -1,3 +1,5 @@
+import { EnumValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class UserStatus
  * @description 用户状态值对象
@@ -15,19 +17,14 @@
  * - INACTIVE/SUSPENDED -> ACTIVE (重新激活)
  * - 任何状态 -> DELETED (删除)
  * - DELETED 为终态，不能转换
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承EnumValueObject基类，获得枚举值对象的通用功能
+ * 2. 实现getValidValues方法，提供有效的状态值列表
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class UserStatus {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 用户状态值
-   */
-  private constructor(value: string) {
-    this.validate(value);
-    this._value = value;
-  }
+export class UserStatus extends EnumValueObject<string> {
 
   /**
    * @method create
@@ -40,45 +37,12 @@ export class UserStatus {
   }
 
   /**
-   * @method validate
-   * @description 验证用户状态的有效性
-   * @param value 用户状态值
-   * @throws Error 当值无效时抛出异常
+   * @protected getValidValues
+   * @description 获取有效的状态值列表
+   * @returns 有效的状态值数组
    */
-  private validate(value: string): void {
-    const validStatuses = ['PENDING_ACTIVATION', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DELETED'];
-    if (!validStatuses.includes(value)) {
-      throw new Error(`Invalid user status: ${value}`);
-    }
-  }
-
-  /**
-   * @method equals
-   * @description 比较两个用户状态是否相等
-   * @param other 另一个用户状态
-   * @returns boolean
-   */
-  equals(other: UserStatus): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取用户状态值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
+  protected getValidValues(): string[] {
+    return ['PENDING_ACTIVATION', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DELETED'];
   }
 
   /**
@@ -87,7 +51,7 @@ export class UserStatus {
    * @returns boolean
    */
   isPendingActivation(): boolean {
-    return this._value === 'PENDING_ACTIVATION';
+    return this.value === 'PENDING_ACTIVATION';
   }
 
   /**
@@ -96,7 +60,7 @@ export class UserStatus {
    * @returns boolean
    */
   isActive(): boolean {
-    return this._value === 'ACTIVE';
+    return this.value === 'ACTIVE';
   }
 
   /**
@@ -105,7 +69,7 @@ export class UserStatus {
    * @returns boolean
    */
   isInactive(): boolean {
-    return this._value === 'INACTIVE';
+    return this.value === 'INACTIVE';
   }
 
   /**
@@ -114,7 +78,7 @@ export class UserStatus {
    * @returns boolean
    */
   isSuspended(): boolean {
-    return this._value === 'SUSPENDED';
+    return this.value === 'SUSPENDED';
   }
 
   /**
@@ -123,7 +87,7 @@ export class UserStatus {
    * @returns boolean
    */
   isDeleted(): boolean {
-    return this._value === 'DELETED';
+    return this.value === 'DELETED';
   }
 
   /**
@@ -132,7 +96,7 @@ export class UserStatus {
    * @returns boolean
    */
   isFinal(): boolean {
-    return this._value === 'DELETED';
+    return this.value === 'DELETED';
   }
 
   /**
@@ -141,7 +105,7 @@ export class UserStatus {
    * @returns boolean
    */
   canLogin(): boolean {
-    return this._value === 'ACTIVE';
+    return this.value === 'ACTIVE';
   }
 
   /**
@@ -159,7 +123,7 @@ export class UserStatus {
       return true; // 任何非终态都可以删除
     }
 
-    switch (this._value) {
+    switch (this.value) {
       case 'PENDING_ACTIVATION':
         return targetStatus.isActive();
 
@@ -188,7 +152,7 @@ export class UserStatus {
       'SUSPENDED': '暂停',
       'DELETED': '已删除'
     };
-    return displayNames[this._value] || this._value;
+    return displayNames[this.value] || this.value;
   }
 
   /**
@@ -204,7 +168,7 @@ export class UserStatus {
       'SUSPENDED': '用户已被暂停，暂时无法使用系统',
       'DELETED': '用户已被删除，数据不可恢复'
     };
-    return descriptions[this._value] || '';
+    return descriptions[this.value] || '';
   }
 
   // 静态常量

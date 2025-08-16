@@ -45,4 +45,28 @@ export class UserCreatedEvent extends BaseDomainEvent {
   protected getAggregateType(): string {
     return 'User';
   }
+
+  /**
+   * @method createCopyWithMetadata
+   * @description 创建带有新元数据的事件副本
+   * @param metadata 新元数据
+   * @returns UserCreatedEvent
+   */
+  protected createCopyWithMetadata(metadata: Record<string, any>): BaseDomainEvent {
+    return new UserCreatedEvent(this.user);
+  }
+
+  /**
+   * @method createCopyWithOptions
+   * @description 创建带有新选项的事件副本
+   * @param options 新选项
+   * @returns UserCreatedEvent
+   */
+  protected createCopyWithOptions(options: {
+    metadata?: Record<string, any>;
+    correlationId?: string;
+    causationId?: string;
+  }): BaseDomainEvent {
+    return new UserCreatedEvent(this.user);
+  }
 }

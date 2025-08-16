@@ -1,4 +1,5 @@
 import * as bcrypt from 'bcrypt';
+import { StringValueObject } from '@/shared/domain/value-objects/base.value-object';
 
 /**
  * @class Password
@@ -15,9 +16,14 @@ import * as bcrypt from 'bcrypt';
  * - 密码必须包含字母和数字
  * - 密码不能包含常见弱密码
  * - 密码使用bcrypt加密存储
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承StringValueObject基类，获得字符串值对象的通用功能
+ * 2. 实现自定义的验证逻辑，确保密码符合安全要求
+ * 3. 提供工厂方法create和fromHashed，支持明文和密文创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class Password {
-  private readonly _value: string;
+export class Password extends StringValueObject {
   private readonly _hashedValue: string;
 
   /**
@@ -28,11 +34,10 @@ export class Password {
    */
   private constructor(value: string, isHashed: boolean = false) {
     if (isHashed) {
-      this._value = '';
+      super(''); // 传递空字符串给基类，因为我们不存储明文
       this._hashedValue = value;
     } else {
-      this.validate(value);
-      this._value = value;
+      super(value); // 传递明文给基类进行验证
       this._hashedValue = this.hashPassword(value);
     }
   }
@@ -58,12 +63,13 @@ export class Password {
   }
 
   /**
-   * @method validate
+   * @protected isValidValue
    * @description 验证密码的有效性
    * @param value 密码值
+   * @returns boolean 是否有效
    * @throws Error 当值无效时抛出异常
    */
-  private validate(value: string): void {
+  protected isValidValue(value: string): boolean {
     if (!value || value.trim().length === 0) {
       throw new Error('Password cannot be empty');
     }
@@ -109,6 +115,8 @@ export class Password {
     if (this.hasRepeatedChars(value)) {
       throw new Error('Password cannot contain repeated characters');
     }
+
+    return true;
   }
 
   /**
@@ -188,11 +196,11 @@ export class Password {
   }
 
   /**
-   * @method value
-   * @description 获取密码值（返回加密后的值）
+   * @method getHashedValue
+   * @description 获取加密后的密码值
    * @returns string
    */
-  get value(): string {
+  getHashedValue(): string {
     return this._hashedValue;
   }
 
@@ -202,7 +210,7 @@ export class Password {
    * @returns string
    */
   getPlainValue(): string {
-    return this._value;
+    return this.value;
   }
 
   /**
@@ -211,7 +219,7 @@ export class Password {
    * @returns boolean
    */
   isHashed(): boolean {
-    return this._value === '';
+    return this.value === '';
   }
 
   /**
@@ -225,7 +233,7 @@ export class Password {
     }
 
     let score = 0;
-    const password = this._value;
+    const password = this.value;
 
     // 长度评分
     if (password.length >= 8) score += 10;

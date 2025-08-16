@@ -377,3 +377,44 @@ export abstract class BooleanValueObject extends BaseValueObject<boolean> {
     return this._value === false;
   }
 }
+
+/**
+ * @class EnumValueObject
+ * @description 枚举值对象基类
+ */
+export abstract class EnumValueObject<T extends string | number> extends BaseValueObject<T> {
+  /**
+   * @protected abstract getValidValues
+   * @description 获取有效的枚举值列表
+   * @returns 有效的枚举值数组
+   */
+  protected abstract getValidValues(): T[];
+
+  /**
+   * @protected isValidValue
+   * @description 检查枚举值是否有效
+   * @param value 要检查的枚举值
+   * @returns 是否有效
+   */
+  protected isValidValue(value: T): boolean {
+    return this.getValidValues().includes(value);
+  }
+
+  /**
+   * @method toString
+   * @description 转换为字符串
+   * @returns 字符串表示
+   */
+  toString(): string {
+    return String(this._value);
+  }
+
+  /**
+   * @method toJSON
+   * @description 转换为JSON
+   * @returns JSON表示
+   */
+  toJSON(): T {
+    return this._value;
+  }
+}

@@ -7,12 +7,11 @@
  * - MongoDB实现（未来扩展）
  */
 
-// PostgreSQL实现（默认）
+// PostgreSQL 适配器
 export * from './postgresql/entities/user.entity';
 export * from './postgresql/mappers/user.mapper';
 export * from './postgresql/repositories/user.repository';
 
-// MongoDB实现（未来扩展）
-// export * from './mongodb/entities/user.entity';
-// export * from './mongodb/mappers/user.mapper';
-// export * from './mongodb/repositories/user.repository';
+// 数据库适配器
+export * from './database/database-adapter.factory';
+export * from './database/database.config';

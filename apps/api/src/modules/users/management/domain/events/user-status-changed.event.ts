@@ -16,44 +16,21 @@ export class UserStatusChangedEvent extends BaseDomainEvent {
     public readonly user: User,
     public readonly newStatus: UserStatus
   ) {
-    super();
-  }
-
-  /**
-   * @method getEventData
-   * @description 获取事件数据
-   * @returns 事件数据对象
-   */
-  getEventData(): any {
-    return {
-      userId: this.user.id.value,
-      email: this.user.email.value,
-      username: this.user.username.value,
-      oldStatus: this.user.status.value,
-      newStatus: this.newStatus.value,
-      statusDisplayName: this.newStatus.getDisplayName(),
-      statusDescription: this.newStatus.getDescription(),
-      tenantId: this.user.tenantId.value,
-      updatedAt: this.user.updatedAt
-    };
-  }
-
-  /**
-   * @method getEventType
-   * @description 获取事件类型
-   * @returns 事件类型字符串
-   */
-  getEventType(): string {
-    return 'UserStatusChanged';
-  }
-
-  /**
-   * @method getAggregateId
-   * @description 获取聚合根ID
-   * @returns 聚合根ID
-   */
-  getAggregateId(): string {
-    return this.user.id.value;
+    super(
+      user.id.value,
+      'UserStatusChanged',
+      {
+        userId: user.id.value,
+        email: user.email.value,
+        username: user.username.value,
+        oldStatus: user.status.value,
+        newStatus: newStatus.value,
+        statusDisplayName: newStatus.getDisplayName(),
+        statusDescription: newStatus.getDescription(),
+        tenantId: user.tenantId.value,
+        updatedAt: user.updatedAt
+      }
+    );
   }
 
   /**
@@ -61,7 +38,31 @@ export class UserStatusChangedEvent extends BaseDomainEvent {
    * @description 获取聚合根类型
    * @returns 聚合根类型
    */
-  getAggregateType(): string {
+  protected getAggregateType(): string {
     return 'User';
+  }
+
+  /**
+   * @method createCopyWithMetadata
+   * @description 创建带有新元数据的事件副本
+   * @param metadata 新元数据
+   * @returns UserStatusChangedEvent
+   */
+  protected createCopyWithMetadata(metadata: Record<string, any>): BaseDomainEvent {
+    return new UserStatusChangedEvent(this.user, this.newStatus);
+  }
+
+  /**
+   * @method createCopyWithOptions
+   * @description 创建带有新选项的事件副本
+   * @param options 新选项
+   * @returns UserStatusChangedEvent
+   */
+  protected createCopyWithOptions(options: {
+    metadata?: Record<string, any>;
+    correlationId?: string;
+    causationId?: string;
+  }): BaseDomainEvent {
+    return new UserStatusChangedEvent(this.user, this.newStatus);
   }
 }

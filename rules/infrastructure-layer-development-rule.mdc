@@ -1,0 +1,80 @@
+---
+description: Infrastructure Layer Development Rule
+globs:
+  - "**/infrastructure/**/*.ts"
+  - "**/infrastructure/**/*.js"
+  - "**/database/**/*.ts"
+  - "**/database/**/*.js"
+  - "**/entities/**/*.ts"
+  - "**/entities/**/*.js"
+  - "**/mappers/**/*.ts"
+  - "**/mappers/**/*.js"
+  - "**/repositories/**/*.ts"
+  - "**/repositories/**/*.js"
+alwaysApply: false
+---
+# 基础设施层开发规则
+
+## 🚨 重要提示
+
+**在开发基础设施层代码之前，必须先阅读并理解以下文档：**
+- `docs/development/infrastructure-layer-development-guide.md`
+
+## 📋 核心要求
+
+### 1. 技术栈要求
+- **ORM框架**: 统一使用 **MikroORM** 作为ORM框架
+- **数据库支持**: 支持PostgreSQL和MongoDB多数据库适配
+- **架构模式**: 采用Clean Architecture和DDD设计模式
+
+### 2. 开发规范
+- **实体设计**: 使用MikroORM装饰器（@Entity、@Property、@Index等）
+- **数据映射**: 实现Mapper模式，解耦领域层和基础设施层
+- **仓储模式**: 实现领域层定义的仓储接口
+- **事件溯源**: 支持事件溯源的数据存储和重建
+
+### 3. 文件组织
+- 按数据库类型分目录：`postgresql/`, `mongodb/`
+- 每个数据库类型下按功能分目录：`entities/`, `mappers/`, `repositories/`
+- 每个功能目录下包含实现文件和测试文件
+
+### 4. 命名规范
+- **实体**: 使用名词+Entity，如 `UserEntity`
+- **映射器**: 使用名词+Mapper，如 `UserMapper`
+- **仓储**: 使用名词+Repository，如 `UserRepository`
+- **接口**: 使用I+名词，如 `IUserRepository`
+
+### 5. 依赖注入
+- 使用NestJS的依赖注入容器
+- 在模块中正确配置提供者和导出
+- 使用接口进行依赖抽象
+
+### 6. 性能优化
+- 合理使用索引提升查询性能
+- 使用MikroORM的QueryBuilder构建复杂查询
+- 实现高效的分页查询
+- 使用批量操作提高性能
+
+### 7. 测试要求
+- 为每个组件编写单元测试
+- 使用模拟对象隔离依赖
+- 测试数据转换的正确性
+- 测试文件放置在被测试文件的同级目录下
+
+## 🔧 开发流程
+
+1. **阅读指南**: 首先阅读基础设施层开发指南
+2. **设计实体**: 使用MikroORM装饰器设计数据库实体
+3. **实现映射器**: 实现领域实体和数据库实体的双向转换
+4. **实现仓储**: 使用EntityManager实现数据访问逻辑
+5. **编写测试**: 为所有组件编写单元测试
+6. **性能优化**: 优化查询性能和内存使用
+7. **文档更新**: 更新相关文档
+
+## ⚠️ 注意事项
+
+- 基础设施层依赖领域层的接口，不依赖具体的数据库实现
+- 使用MikroORM的EntityManager进行所有数据库操作
+- 正确处理事件溯源的事件存储和重建
+- 确保数据操作的原子性和一致性
+- 遵循SOLID原则和Clean Architecture设计原则

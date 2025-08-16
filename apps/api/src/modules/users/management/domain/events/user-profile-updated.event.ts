@@ -14,50 +14,27 @@ export class UserProfileUpdatedEvent extends BaseDomainEvent {
   constructor(
     public readonly user: User
   ) {
-    super();
-  }
-
-  /**
-   * @method getEventData
-   * @description 获取事件数据
-   * @returns 事件数据对象
-   */
-  getEventData(): any {
-    return {
-      userId: this.user.id.value,
-      email: this.user.email.value,
-      username: this.user.username.value,
-      firstName: this.user.firstName,
-      lastName: this.user.lastName,
-      nickname: this.user.nickname,
-      phoneNumber: this.user.phoneNumber,
-      avatar: this.user.avatar,
-      bio: this.user.bio,
-      status: this.user.status.value,
-      tenantId: this.user.tenantId.value,
-      primaryOrganizationId: this.user.primaryOrganizationId,
-      organizations: this.user.organizations,
-      roles: this.user.roles,
-      updatedAt: this.user.updatedAt
-    };
-  }
-
-  /**
-   * @method getEventType
-   * @description 获取事件类型
-   * @returns 事件类型字符串
-   */
-  getEventType(): string {
-    return 'UserProfileUpdated';
-  }
-
-  /**
-   * @method getAggregateId
-   * @description 获取聚合根ID
-   * @returns 聚合根ID
-   */
-  getAggregateId(): string {
-    return this.user.id.value;
+    super(
+      user.id.value,
+      'UserProfileUpdated',
+      {
+        userId: user.id.value,
+        email: user.email.value,
+        username: user.username.value,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        nickname: user.nickname,
+        phoneNumber: user.phoneNumber,
+        avatar: user.avatar,
+        bio: user.bio,
+        status: user.status.value,
+        tenantId: user.tenantId.value,
+        primaryOrganizationId: user.primaryOrganizationId,
+        organizations: user.organizations,
+        roles: user.roles,
+        updatedAt: user.updatedAt
+      }
+    );
   }
 
   /**
@@ -65,7 +42,31 @@ export class UserProfileUpdatedEvent extends BaseDomainEvent {
    * @description 获取聚合根类型
    * @returns 聚合根类型
    */
-  getAggregateType(): string {
+  protected getAggregateType(): string {
     return 'User';
+  }
+
+  /**
+   * @method createCopyWithMetadata
+   * @description 创建带有新元数据的事件副本
+   * @param metadata 新元数据
+   * @returns UserProfileUpdatedEvent
+   */
+  protected createCopyWithMetadata(metadata: Record<string, any>): BaseDomainEvent {
+    return new UserProfileUpdatedEvent(this.user);
+  }
+
+  /**
+   * @method createCopyWithOptions
+   * @description 创建带有新选项的事件副本
+   * @param options 新选项
+   * @returns UserProfileUpdatedEvent
+   */
+  protected createCopyWithOptions(options: {
+    metadata?: Record<string, any>;
+    correlationId?: string;
+    causationId?: string;
+  }): BaseDomainEvent {
+    return new UserProfileUpdatedEvent(this.user);
   }
 }

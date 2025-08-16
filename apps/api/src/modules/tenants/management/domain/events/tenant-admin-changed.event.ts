@@ -148,7 +148,14 @@ export class TenantAdminChangedEvent extends BaseDomainEvent {
   protected createCopyWithMetadata(metadata: Record<string, any>): TenantAdminChangedEvent {
     return new TenantAdminChangedEvent(
       this.aggregateId,
-      this.eventData,
+      this.eventData as {
+        tenantId: string;
+        oldAdminId: string;
+        newAdminId: string;
+        changedAt: string;
+        changedBy: string;
+        reason?: string;
+      },
       {
         eventVersion: this.eventVersion,
         metadata,
@@ -171,7 +178,14 @@ export class TenantAdminChangedEvent extends BaseDomainEvent {
   }): TenantAdminChangedEvent {
     return new TenantAdminChangedEvent(
       this.aggregateId,
-      this.eventData,
+      this.eventData as {
+        tenantId: string;
+        oldAdminId: string;
+        newAdminId: string;
+        changedAt: string;
+        changedBy: string;
+        reason?: string;
+      },
       {
         eventVersion: this.eventVersion,
         metadata: { ...this.metadata, ...options.metadata },
@@ -189,7 +203,14 @@ export class TenantAdminChangedEvent extends BaseDomainEvent {
   clone(): TenantAdminChangedEvent {
     return new TenantAdminChangedEvent(
       this.aggregateId,
-      this.eventData,
+      this.eventData as {
+        tenantId: string;
+        oldAdminId: string;
+        newAdminId: string;
+        changedAt: string;
+        changedBy: string;
+        reason?: string;
+      },
       {
         eventVersion: this.eventVersion,
         metadata: this.metadata,

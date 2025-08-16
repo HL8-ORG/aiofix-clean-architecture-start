@@ -1,3 +1,5 @@
+import { EnumValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class ApplicationStatus
  * @description 申请状态值对象
@@ -12,19 +14,14 @@
  * - PENDING -> APPROVED/REJECTED (审核)
  * - PENDING -> CANCELLED (取消)
  * - 其他状态为终态，不能转换
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承EnumValueObject基类，获得枚举值对象的通用功能
+ * 2. 实现getValidValues方法，提供有效的状态值列表
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class ApplicationStatus {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 申请状态值
-   */
-  private constructor(value: string) {
-    this.validate(value);
-    this._value = value;
-  }
+export class ApplicationStatus extends EnumValueObject<string> {
 
   /**
    * @method create
@@ -37,45 +34,12 @@ export class ApplicationStatus {
   }
 
   /**
-   * @method validate
-   * @description 验证申请状态的有效性
-   * @param value 申请状态值
-   * @throws Error 当值无效时抛出异常
+   * @protected getValidValues
+   * @description 获取有效的状态值列表
+   * @returns 有效的状态值数组
    */
-  private validate(value: string): void {
-    const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
-    if (!validStatuses.includes(value)) {
-      throw new Error(`Invalid application status: ${value}`);
-    }
-  }
-
-  /**
-   * @method equals
-   * @description 比较两个申请状态是否相等
-   * @param other 另一个申请状态
-   * @returns boolean
-   */
-  equals(other: ApplicationStatus): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取申请状态值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
+  protected getValidValues(): string[] {
+    return ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
   }
 
   /**
@@ -84,7 +48,7 @@ export class ApplicationStatus {
    * @returns boolean
    */
   isPending(): boolean {
-    return this._value === 'PENDING';
+    return this.value === 'PENDING';
   }
 
   /**
@@ -93,7 +57,7 @@ export class ApplicationStatus {
    * @returns boolean
    */
   isApproved(): boolean {
-    return this._value === 'APPROVED';
+    return this.value === 'APPROVED';
   }
 
   /**
@@ -102,7 +66,7 @@ export class ApplicationStatus {
    * @returns boolean
    */
   isRejected(): boolean {
-    return this._value === 'REJECTED';
+    return this.value === 'REJECTED';
   }
 
   /**
@@ -111,7 +75,7 @@ export class ApplicationStatus {
    * @returns boolean
    */
   isCancelled(): boolean {
-    return this._value === 'CANCELLED';
+    return this.value === 'CANCELLED';
   }
 
   /**
@@ -120,7 +84,7 @@ export class ApplicationStatus {
    * @returns boolean
    */
   isFinal(): boolean {
-    return this._value === 'APPROVED' || this._value === 'REJECTED' || this._value === 'CANCELLED';
+    return this.value === 'APPROVED' || this.value === 'REJECTED' || this.value === 'CANCELLED';
   }
 
   /**

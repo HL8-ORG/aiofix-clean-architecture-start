@@ -1,0 +1,14 @@
+---
+description: 注意事项
+globs:
+alwaysApply: true
+---
+
+- 服务端项目基于`NestJS`框架开发。
+- NestJS应用已经将默认的Express平台切换到了Fastify平台。
+- 优先使用自定义的PinoLoggerService，而不是`NestJS`内置的Logger。
+- 单元测试文件应当放置在被测试文件的同级目录下。
+- 集成测试和e2e测试代码不应放在`src`目录下，应当建立与`src`同级的`test`目录来管理集成测试和e2e测试代码。
+- 全局统一使用`uuidv4`。
+- 创建文件时应当采取分段创建策略。
+- 代码文件编写完成后应当及时检查有无报错。

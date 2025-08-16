@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { TenantApplication } from '../entities/tenant-application.entity';
 import { TenantDomainChangeApplication } from '../entities/tenant-domain-change-application.entity';
 import { ApplicationStatus } from '../value-objects/application-status';
-import { UserId } from '../../../users/management/domain/value-objects/user-id';
+import { UserId } from '@/modules/users/management/domain/value-objects/user-id';
 import { TenantId } from '../value-objects/tenant-id';
 import { TenantDomainService } from './tenant-domain.service';
 

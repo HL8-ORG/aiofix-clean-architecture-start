@@ -16,43 +16,20 @@ export class UserPasswordChangedEvent extends BaseDomainEvent {
   constructor(
     public readonly user: User
   ) {
-    super();
-  }
-
-  /**
-   * @method getEventData
-   * @description 获取事件数据
-   * @returns 事件数据对象
-   */
-  getEventData(): any {
-    return {
-      userId: this.user.id.value,
-      email: this.user.email.value,
-      username: this.user.username.value,
-      passwordChanged: true,
-      passwordStrength: this.user.password.getStrength(),
-      passwordStrengthLevel: this.user.password.getStrengthLevel(),
-      tenantId: this.user.tenantId.value,
-      updatedAt: this.user.updatedAt
-    };
-  }
-
-  /**
-   * @method getEventType
-   * @description 获取事件类型
-   * @returns 事件类型字符串
-   */
-  getEventType(): string {
-    return 'UserPasswordChanged';
-  }
-
-  /**
-   * @method getAggregateId
-   * @description 获取聚合根ID
-   * @returns 聚合根ID
-   */
-  getAggregateId(): string {
-    return this.user.id.value;
+    super(
+      user.id.value,
+      'UserPasswordChanged',
+      {
+        userId: user.id.value,
+        email: user.email.value,
+        username: user.username.value,
+        passwordChanged: true,
+        passwordStrength: user.password.getStrength(),
+        passwordStrengthLevel: user.password.getStrengthLevel(),
+        tenantId: user.tenantId.value,
+        updatedAt: user.updatedAt
+      }
+    );
   }
 
   /**
@@ -60,7 +37,31 @@ export class UserPasswordChangedEvent extends BaseDomainEvent {
    * @description 获取聚合根类型
    * @returns 聚合根类型
    */
-  getAggregateType(): string {
+  protected getAggregateType(): string {
     return 'User';
+  }
+
+  /**
+   * @method createCopyWithMetadata
+   * @description 创建带有新元数据的事件副本
+   * @param metadata 新元数据
+   * @returns UserPasswordChangedEvent
+   */
+  protected createCopyWithMetadata(metadata: Record<string, any>): BaseDomainEvent {
+    return new UserPasswordChangedEvent(this.user);
+  }
+
+  /**
+   * @method createCopyWithOptions
+   * @description 创建带有新选项的事件副本
+   * @param options 新选项
+   * @returns UserPasswordChangedEvent
+   */
+  protected createCopyWithOptions(options: {
+    metadata?: Record<string, any>;
+    correlationId?: string;
+    causationId?: string;
+  }): BaseDomainEvent {
+    return new UserPasswordChangedEvent(this.user);
   }
 }

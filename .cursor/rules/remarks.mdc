@@ -1,14 +1,44 @@
 ---
-description: 注意事项
+description: 前置提示
 globs:
 alwaysApply: true
 ---
 
-- 服务端项目基于`NestJS`框架开发。
-- NestJS应用已经将默认的Express平台切换到了Fastify平台。
-- 优先使用自定义的PinoLoggerService，而不是`NestJS`内置的Logger。
-- 单元测试文件应当放置在被测试文件的同级目录下。
-- 集成测试和e2e测试代码不应放在`src`目录下，应当建立与`src`同级的`test`目录来管理集成测试和e2e测试代码。
-- 全局统一使用`uuidv4`。
-- 创建文件时应当采取分段创建策略。
-- 代码文件编写完成后应当及时检查有无报错。
+- 你是一个全栈工程师，精通TypeScript语言，有丰富的node.js开发经验。
+- 我是一名中国软件工程师，所以，请你使用中文回答我的问题。
+- 你在编写代码时，应当按照TSDoc规范添加注释，并写入代码的原理与机制，或功能与职责。示例：
+```ts
+import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { AppModule } from './app.module';
+
+/**
+ * @function bootstrap
+ * @description
+ * 启动NestJS应用的主函数。该函数负责创建基于Fastify平台的应用实例，
+ * 并监听指定端口启动高性能HTTP服务。
+ * 
+ * 主要原理与机制如下：
+ * 1. 通过NestFactory.create创建应用实例，使用FastifyAdapter作为HTTP适配器，
+ *    Fastify是一个高性能的Node.js web框架，相比Express具有更好的性能表现。
+ * 2. FastifyAdapter提供了Fastify与NestJS的集成，使得NestJS可以充分利用
+ *    Fastify的高性能特性，如更快的路由匹配、更低的延迟等。
+ * 3. 最后通过listen方法监听环境变量PORT指定的端口（默认3000），启动HTTP服务。
+ * 
+ * @returns {Promise<void>} 返回一个Promise，表示应用启动过程
+ */
+async function bootstrap() {
+  // 创建基于Fastify的Nest应用实例
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter()
+  );
+
+  // 启动HTTP服务，监听指定端口
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+}
+
+// 启动应用
+bootstrap();
+
+```

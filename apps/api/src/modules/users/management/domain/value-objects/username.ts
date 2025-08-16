@@ -1,3 +1,5 @@
+import { StringValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class Username
  * @description 用户名字值对象
@@ -14,19 +16,14 @@
  * - 只能包含字母、数字、下划线
  * - 不能以数字开头
  * - 不能包含连续下划线
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承StringValueObject基类，获得字符串值对象的通用功能
+ * 2. 实现自定义的验证逻辑，确保用户名符合命名规范
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class Username {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 用户名
-   */
-  private constructor(value: string) {
-    this.validate(value);
-    this._value = value.toLowerCase().trim();
-  }
+export class Username extends StringValueObject {
 
   /**
    * @method create
@@ -39,12 +36,13 @@ export class Username {
   }
 
   /**
-   * @method validate
+   * @protected isValidValue
    * @description 验证用户名的有效性
    * @param value 用户名
+   * @returns boolean 是否有效
    * @throws Error 当值无效时抛出异常
    */
-  private validate(value: string): void {
+  protected isValidValue(value: string): boolean {
     if (!value || value.trim().length === 0) {
       throw new Error('Username cannot be empty');
     }
@@ -84,53 +82,36 @@ export class Username {
     if (reservedUsernames.includes(value.toLowerCase())) {
       throw new Error('Username is reserved and cannot be used');
     }
+
+    return true;
   }
 
   /**
-   * @method equals
-   * @description 比较两个用户名是否相等
-   * @param other 另一个用户名
-   * @returns boolean
+   * @protected transformValue
+   * @description 转换用户名值（转换为小写并去除首尾空格）
+   * @param value 原始用户名值
+   * @returns 转换后的用户名值
    */
-  equals(other: Username): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取用户名值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
+  protected transformValue(value: string): string {
+    return value.toLowerCase().trim();
   }
 
   /**
    * @method toUpperCase
    * @description 转换为大写
-   * @returns string
+   * @returns Username
    */
-  toUpperCase(): string {
-    return this._value.toUpperCase();
+  toUpperCase(): Username {
+    return new Username(this.value.toUpperCase());
   }
 
   /**
    * @method toLowerCase
    * @description 转换为小写
-   * @returns string
+   * @returns Username
    */
-  toLowerCase(): string {
-    return this._value.toLowerCase();
+  toLowerCase(): Username {
+    return new Username(this.value.toLowerCase());
   }
 
   /**
@@ -139,7 +120,7 @@ export class Username {
    * @returns string
    */
   getDisplayName(): string {
-    return this._value.charAt(0).toUpperCase() + this._value.slice(1);
+    return this.value.charAt(0).toUpperCase() + this.value.slice(1);
   }
 
   /**
@@ -154,6 +135,6 @@ export class Username {
       'login', 'logout', 'register', 'signup', 'signin', 'password',
       'email', 'mail', 'support', 'help', 'info', 'contact'
     ];
-    return reservedUsernames.includes(this._value.toLowerCase());
+    return reservedUsernames.includes(this.value.toLowerCase());
   }
 }

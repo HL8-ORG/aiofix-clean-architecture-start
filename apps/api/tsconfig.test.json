@@ -2,9 +2,18 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "isolatedModules": false,
-    "types": ["jest", "node"],
-    "moduleResolution": "node",
+    "types": [
+      "jest",
+      "node"
+    ],
+    "moduleResolution": "nodenext",
     "allowJs": true
   },
-  "include": ["src/**/*.spec.ts", "src/**/*.test.ts"]
+  "include": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "test/**/*.spec.ts",
+    "test/**/*.test.ts",
+    "test/**/*.integration-spec.ts"
+  ]
 }

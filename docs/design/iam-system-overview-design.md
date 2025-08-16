@@ -288,7 +288,7 @@
 - 所有用户操作都通过事件记录
 - 支持用户状态历史追踪
 
-#### 3.2.3 认证领域 (Authentication Domain)
+#### 3.2.3 认证领域 (Auth Domain)
 
 **领域职责**：
 - 用户身份验证
@@ -297,20 +297,56 @@
 - 多因子认证
 - 密码管理
 - 认证事件溯源
+- Passport策略管理
 
 **子领域划分**：
 - **login**: 登录流程、认证策略
 - **password**: 密码管理、重置、验证
 - **mfa**: 多因子认证、OTP、生物识别
 - **sessions**: 会话管理、令牌管理
+- **strategies**: Passport策略实现 ⭐ 新增
+- **guards**: 认证守卫实现 ⭐ 新增
 
 **核心概念**：
 - **聚合根**: LoginSession、MfaDevice、PasswordReset
 - **实体**: LoginAttempt、SecurityPolicy、MfaToken
 - **值对象**: SessionId、TokenId、LoginStatus、MfaType
-- **领域服务**: AuthenticationDomainService、SessionDomainService、MfaDomainService
+- **领域服务**: AuthDomainService、SessionDomainService、MfaDomainService
+- **Passport策略**: JwtStrategy、LocalStrategy、MfaStrategy ⭐ 新增
+- **认证守卫**: JwtAuthGuard、LocalAuthGuard、MfaAuthGuard ⭐ 新增
 - **领域事件**: UserLoggedInEvent、UserLoggedOutEvent、SessionCreatedEvent、SessionExpiredEvent、MfaEnabledEvent、PasswordChangedEvent
-- **事件溯源**: EventSourcedSession、AuthenticationEventStore、AuthenticationSnapshotManager
+- **事件溯源**: EventSourcedSession、AuthEventStore、AuthSnapshotManager
+
+**Passport策略设计**：
+- **JwtStrategy**: JWT令牌验证策略
+  - 验证JWT令牌有效性
+  - 提取用户信息
+  - 验证令牌过期时间
+  - 支持令牌刷新机制
+- **LocalStrategy**: 本地用户名密码策略
+  - 用户名/邮箱登录验证
+  - 密码加密验证
+  - 账户状态检查
+  - 登录失败处理
+- **MfaStrategy**: 多因子认证策略
+  - OTP验证
+  - 生物识别验证
+  - 设备信任管理
+  - 备用验证方式
+
+**认证守卫设计**：
+- **JwtAuthGuard**: JWT认证守卫
+  - 验证JWT令牌
+  - 提取用户上下文
+  - 设置请求用户信息
+- **LocalAuthGuard**: 本地认证守卫
+  - 验证用户名密码
+  - 创建用户会话
+  - 生成访问令牌
+- **MfaAuthGuard**: 多因子认证守卫
+  - 验证MFA令牌
+  - 检查设备信任状态
+  - 完成多因子认证
 
 **业务规则**：
 - 支持多种认证方式（用户名/密码、邮箱/密码、手机号/验证码）
@@ -320,8 +356,11 @@
 - 异常登录行为监控
 - 所有认证操作都通过事件记录
 - 支持安全事件历史追踪
+- JWT令牌支持刷新机制
+- 支持设备信任管理
+- 支持登录失败锁定机制
 
-#### 3.2.4 授权领域 (Authorization Domain)
+#### 3.2.4 授权领域 (Authz Domain)
 
 **领域职责**：
 - 权限控制管理
@@ -342,7 +381,7 @@
 - **聚合根**: Role、Permission、OrganizationPermission、CaslRule
 - **实体**: UserRole、RolePermission、PermissionPolicy、CaslAbility
 - **值对象**: RoleId、RoleName、RoleCode、PermissionId、PermissionName、CaslAction、CaslSubject
-- **领域服务**: RoleDomainService、PermissionDomainService、AuthorizationDomainService、CaslPermissionDomainService
+- **领域服务**: RoleDomainService、PermissionDomainService、AuthzDomainService、CaslPermissionDomainService
 - **领域事件**: RoleCreatedEvent、PermissionAssignedEvent、UserRoleChangedEvent、CaslRuleUpdatedEvent、OrganizationPermissionChangedEvent
 - **事件溯源**: EventSourcedRole、EventSourcedPermission、PermissionEventStore、PermissionSnapshotManager
 
@@ -358,6 +397,28 @@
 - 支持复杂的权限逻辑组合
 - 所有权限操作都通过事件记录
 - 支持权限变更历史追踪
+
+**CASL与Passport集成设计**：
+- **CaslAbilityFactory**: CASL能力工厂
+  - 根据用户角色创建权限能力
+  - 集成组织权限规则
+  - 支持动态权限计算
+  - 缓存权限能力对象
+- **CaslGuard**: CASL权限守卫
+  - 验证用户操作权限
+  - 检查资源访问权限
+  - 支持条件权限验证
+  - 集成请求上下文
+- **CaslDecorators**: CASL装饰器
+  - @CheckPolicies() - 检查策略权限
+  - @CheckPermissions() - 检查具体权限
+  - @CheckRoles() - 检查角色权限
+  - @CheckOrganizations() - 检查组织权限
+- **CaslInterceptor**: CASL拦截器
+  - 自动注入权限能力
+  - 处理权限验证结果
+  - 提供权限上下文
+  - 支持权限审计日志
 
 #### 3.2.5 租户变更领域 (Tenant Change Domain)
 
@@ -391,35 +452,35 @@
 
 
 
-#### 3.2.6 申请审核领域 (Application Review Domain)
+#### 3.2.6 审批领域 (Approval Domain)
 
 **领域职责**：
 - 统一申请管理
-- 审核流程协调
-- 审核规则管理
-- 审核历史记录
-- 申请审核事件溯源
+- 审批流程协调
+- 审批规则管理
+- 审批历史记录
+- 审批事件溯源
 
 **子领域划分**：
 - **management**: 申请管理、流程协调
-- **rules**: 审核规则管理
-- **history**: 审核历史记录
+- **rules**: 审批规则管理
+- **history**: 审批历史记录
 
 **核心概念**：
-- **聚合根**: Application、ReviewProcess
-- **实体**: ReviewTask、ReviewRule、ReviewHistory
-- **值对象**: ApplicationType、ReviewStatus、ReviewResult
-- **领域服务**: ApplicationReviewDomainService、ReviewProcessDomainService
-- **领域事件**: ApplicationSubmittedEvent、ApplicationReviewedEvent、ReviewProcessCompletedEvent、ReviewTaskAssignedEvent、ReviewTaskCompletedEvent、ReviewRuleUpdatedEvent
-- **事件溯源**: EventSourcedApplication、EventSourcedReviewProcess、ApplicationEventStore、ApplicationSnapshotManager
+- **聚合根**: Application、ApprovalProcess
+- **实体**: ApprovalTask、ApprovalRule、ApprovalHistory
+- **值对象**: ApplicationType、ApprovalStatus、ApprovalResult
+- **领域服务**: ApprovalDomainService、ApprovalProcessDomainService
+- **领域事件**: ApplicationSubmittedEvent、ApplicationApprovedEvent、ApprovalProcessCompletedEvent、ApprovalTaskAssignedEvent、ApprovalTaskCompletedEvent、ApprovalRuleUpdatedEvent
+- **事件溯源**: EventSourcedApplication、EventSourcedApprovalProcess、ApprovalEventStore、ApprovalSnapshotManager
 
 **业务规则**：
-- 申请必须通过审核流程
-- 审核操作必须记录
-- 审核拒绝必须提供原因
-- 审核结果必须通知申请人
-- 所有申请审核操作都通过事件记录
-- 支持完整的审核流程追踪
+- 申请必须通过审批流程
+- 审批操作必须记录
+- 审批拒绝必须提供原因
+- 审批结果必须通知申请人
+- 所有申请审批操作都通过事件记录
+- 支持完整的审批流程追踪
 
 #### 3.2.7 审计领域 (Audit Domain)
 
@@ -704,9 +765,15 @@
 
 #### 4.2.4 认证与安全
 - **JWT**: JSON Web Token认证
+- **Passport**: 认证策略框架
+  - **passport-jwt**: JWT策略实现
+  - **passport-local**: 本地用户名密码策略
+  - **@nestjs/passport**: NestJS Passport集成
+- **@nestjs/jwt**: JWT服务集成
 - **bcrypt**: 密码加密
 - **Helmet**: 安全中间件
 - **CASL**: 声明式权限管理库
+- **多因子认证**: OTP、生物识别支持
 
 #### 4.2.5 监控与追踪
 - **OpenTelemetry**: 分布式追踪和指标收集
@@ -847,6 +914,13 @@ apps/api/src/
 │   │   ├── management/              # 租户管理子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
+│   │   │   │   ├── services/        # 应用服务
+│   │   │   │   ├── use-cases/       # 业务用例
+│   │   │   │   ├── commands/        # 命令定义
+│   │   │   │   ├── queries/         # 查询定义
+│   │   │   │   ├── handlers/        # 命令和查询处理器
+│   │   │   │   ├── dto/             # 数据传输对象
+│   │   │   │   └── interfaces/      # 应用接口
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
 │   │   ├── billing/                 # 租户计费子领域
@@ -875,6 +949,13 @@ apps/api/src/
 │   │   ├── management/              # 用户管理子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
+│   │   │   │   ├── services/        # 应用服务
+│   │   │   │   ├── use-cases/       # 业务用例
+│   │   │   │   ├── commands/        # 命令定义
+│   │   │   │   ├── queries/         # 查询定义
+│   │   │   │   ├── handlers/        # 命令和查询处理器
+│   │   │   │   ├── dto/             # 数据传输对象
+│   │   │   │   └── interfaces/      # 应用接口
 │   │   │   ├── database/            # 数据库层 ⭐ 新增
 │   │   │   │   ├── database-adapter.factory.ts
 │   │   │   │   ├── database.config.ts
@@ -913,10 +994,17 @@ apps/api/src/
 │   │   │   └── presentation/
 │   │   └── users.module.ts
 │   │
-│   ├── authentication/              # 认证领域
+│   ├── auth/                        # 认证领域
 │   │   ├── login/                   # 登录子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
+│   │   │   │   ├── services/        # 应用服务
+│   │   │   │   ├── use-cases/       # 业务用例
+│   │   │   │   ├── commands/        # 命令定义
+│   │   │   │   ├── queries/         # 查询定义
+│   │   │   │   ├── handlers/        # 命令和查询处理器
+│   │   │   │   ├── dto/             # 数据传输对象
+│   │   │   │   └── interfaces/      # 应用接口
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
 │   │   ├── password/                # 密码管理子领域
@@ -934,12 +1022,29 @@ apps/api/src/
 │   │   │   ├── application/
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
-│   │   └── authentication.module.ts
+│   │   ├── strategies/              # Passport策略子领域 ⭐ 新增
+│   │   │   ├── jwt.strategy.ts      # JWT策略
+│   │   │   ├── local.strategy.ts    # 本地策略
+│   │   │   ├── mfa.strategy.ts      # MFA策略
+│   │   │   └── index.ts
+│   │   ├── guards/                  # 认证守卫子领域 ⭐ 新增
+│   │   │   ├── jwt-auth.guard.ts    # JWT认证守卫
+│   │   │   ├── local-auth.guard.ts  # 本地认证守卫
+│   │   │   ├── mfa-auth.guard.ts    # MFA认证守卫
+│   │   │   └── index.ts
+│   │   └── auth.module.ts
 │   │
-│   ├── authorization/               # 授权领域
+│   ├── authz/                       # 授权领域
 │   │   ├── permissions/             # 权限管理子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
+│   │   │   │   ├── services/        # 应用服务
+│   │   │   │   ├── use-cases/       # 业务用例
+│   │   │   │   ├── commands/        # 命令定义
+│   │   │   │   ├── queries/         # 查询定义
+│   │   │   │   ├── handlers/        # 命令和查询处理器
+│   │   │   │   ├── dto/             # 数据传输对象
+│   │   │   │   └── interfaces/      # 应用接口
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
 │   │   ├── roles/                   # 角色管理子领域
@@ -962,7 +1067,22 @@ apps/api/src/
 │   │   │   ├── application/
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
-│   │   └── authorization.module.ts
+│   │   ├── guards/                  # 权限守卫子领域 ⭐ 新增
+│   │   │   ├── casl.guard.ts        # CASL权限守卫
+│   │   │   ├── roles.guard.ts       # 角色权限守卫
+│   │   │   ├── permissions.guard.ts # 具体权限守卫
+│   │   │   └── index.ts
+│   │   ├── decorators/              # 权限装饰器子领域 ⭐ 新增
+│   │   │   ├── check-policies.decorator.ts
+│   │   │   ├── check-permissions.decorator.ts
+│   │   │   ├── check-roles.decorator.ts
+│   │   │   ├── check-organizations.decorator.ts
+│   │   │   └── index.ts
+│   │   ├── interceptors/            # 权限拦截器子领域 ⭐ 新增
+│   │   │   ├── casl.interceptor.ts  # CASL拦截器
+│   │   │   ├── permissions.interceptor.ts
+│   │   │   └── index.ts
+│   │   └── authz.module.ts
 │   │
 │   ├── organizations/               # 组织领域
 │   │   ├── management/              # 组织管理子领域
@@ -1010,23 +1130,23 @@ apps/api/src/
 │   │   │   └── presentation/
 │   │   └── tenant-change.module.ts
 │   │
-│   ├── application-review/          # 申请审核领域
+│   ├── approval/                    # 审批领域
 │   │   ├── management/              # 申请管理子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
-│   │   ├── rules/                   # 审核规则子领域
+│   │   ├── rules/                   # 审批规则子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
-│   │   ├── history/                 # 审核历史子领域
+│   │   ├── history/                 # 审批历史子领域
 │   │   │   ├── domain/
 │   │   │   ├── application/
 │   │   │   ├── infrastructure/
 │   │   │   └── presentation/
-│   │   └── application-review.module.ts
+│   │   └── approval.module.ts
 │   │
 │   ├── events/                      # 事件领域
 │   │   ├── sourcing/                # 事件溯源子领域
@@ -1323,19 +1443,33 @@ modules/tenant-management/
 ├── application/              # 应用层
 │   ├── services/             # 应用服务
 │   ├── use-cases/            # 业务用例
-│   │   ├── commands/         # 命令用例
-│   │   │   ├── create-tenant.command.ts
-│   │   │   ├── register-user.command.ts
-│   │   │   └── assign-role.command.ts
-│   │   ├── queries/          # 查询用例
-│   │   │   ├── get-user-profile.query.ts
-│   │   │   ├── get-user-permissions.query.ts
-│   │   │   └── get-organization-tree.query.ts
-│   │   └── handlers/         # 用例处理器
-│   │       ├── create-tenant.handler.ts
-│   │       ├── register-user.handler.ts
-│   │       └── assign-role.handler.ts
+│   │   ├── login.use-case.ts
+│   │   ├── create-tenant.use-case.ts
+│   │   ├── register-user.use-case.ts
+│   │   ├── assign-role.use-case.ts
+│   │   ├── get-user-profile.use-case.ts
+│   │   ├── get-user-permissions.use-case.ts
+│   │   └── get-organization-tree.use-case.ts
+│   ├── commands/             # 命令定义
+│   │   ├── create-tenant.command.ts
+│   │   ├── register-user.command.ts
+│   │   └── assign-role.command.ts
+│   ├── queries/              # 查询定义
+│   │   ├── get-user-profile.query.ts
+│   │   ├── get-user-permissions.query.ts
+│   │   └── get-organization-tree.query.ts
+│   ├── handlers/             # 命令和查询处理器
+│   │   ├── commands/         # 命令处理器
+│   │   │   ├── create-tenant.handler.ts
+│   │   │   ├── register-user.handler.ts
+│   │   │   └── assign-role.handler.ts
+│   │   └── queries/          # 查询处理器
+│   │       ├── get-user-profile.handler.ts
+│   │       ├── get-user-permissions.handler.ts
+│   │       └── get-organization-tree.handler.ts
 │   ├── dto/                  # 数据传输对象
+│   │   ├── request/          # 请求DTO
+│   │   └── response/         # 响应DTO
 │   ├── interfaces/           # 应用接口
 │   └── validators/           # 应用校验器
 ├── infrastructure/           # 基础设施层
@@ -1394,7 +1528,7 @@ modules/tenant-management/
 ### 7.5 Use Cases设计指南
 
 #### 7.5.1 Use Cases概述
-Use Cases是应用层的核心组件，负责封装具体的业务用例，协调领域对象完成业务操作。
+Use Cases是Clean Architecture应用层的核心组件，负责封装具体的业务用例，协调领域对象完成业务操作。每个Use Case代表一个完整的业务流程，是应用层的主要构建块。
 
 **Use Cases的特点**：
 - **单一职责**: 每个Use Case只负责一个具体的业务用例
@@ -1402,20 +1536,69 @@ Use Cases是应用层的核心组件，负责封装具体的业务用例，协�
 - **协调作用**: 协调多个领域对象完成复杂业务操作
 - **事务边界**: 定义业务操作的事务边界
 - **输入输出**: 明确的输入参数和输出结果
+- **依赖倒置**: 依赖抽象接口而非具体实现
+- **可测试性**: 每个Use Case都可以独立测试
 
 #### 7.5.2 Use Cases分类
 
 **命令用例 (Commands)**：
 - 修改系统状态的业务操作
 - 返回操作结果，不返回数据
-- 例如：创建租户、注册用户、分配角色
+- 例如：创建租户、注册用户、分配角色、用户登录、用户登出
 
 **查询用例 (Queries)**：
 - 查询系统数据的业务操作
 - 返回查询结果，不修改状态
-- 例如：获取用户信息、查询权限、获取组织架构
+- 例如：获取用户信息、查询权限、获取组织架构、获取用户会话
+
+**业务用例 (Business Use Cases)**：
+- 复杂的业务操作，可能涉及多个命令和查询
+- 协调多个领域对象完成业务目标
+- 例如：用户注册流程、租户申请流程、权限分配流程
 
 #### 7.5.3 Use Cases设计模式
+
+**Use Case Pattern**：
+```typescript
+// Use Case接口
+interface IUseCase<TRequest, TResponse> {
+  execute(request: TRequest): Promise<TResponse>;
+}
+
+// 具体Use Case
+class CreateTenantUseCase implements IUseCase<CreateTenantRequest, CreateTenantResponse> {
+  constructor(
+    private readonly tenantRepository: ITenantRepository,
+    private readonly userRepository: IUserRepository,
+    private readonly eventBus: IEventBus
+  ) {}
+
+  async execute(request: CreateTenantRequest): Promise<CreateTenantResponse> {
+    // 1. 验证输入参数
+    await this.validateRequest(request);
+
+    // 2. 检查业务规则
+    await this.checkBusinessRules(request);
+
+    // 3. 创建租户聚合根
+    const tenant = Tenant.create(
+      new TenantId(request.tenantId),
+      new TenantName(request.tenantName),
+      new TenantCode(request.tenantCode),
+      new UserId(request.adminId)
+    );
+
+    // 4. 保存租户
+    await this.tenantRepository.save(tenant);
+
+    // 5. 发布领域事件
+    await this.eventBus.publish(new TenantCreatedEvent(tenant));
+
+    // 6. 返回结果
+    return new CreateTenantResponse(tenant.id.value);
+  }
+}
+```
 
 **Command Pattern**：
 ```typescript
@@ -1494,26 +1677,26 @@ class GetUserProfileHandler implements IQueryHandler<GetUserProfileQuery, UserPr
 **创建租户用例**：
 ```typescript
 @Injectable()
-export class CreateTenantUseCase {
+export class CreateTenantUseCase implements IUseCase<CreateTenantRequest, CreateTenantResponse> {
   constructor(
     private readonly tenantRepository: ITenantRepository,
     private readonly userRepository: IUserRepository,
     private readonly eventBus: IEventBus
   ) {}
 
-  async execute(command: CreateTenantCommand): Promise<CreateTenantResult> {
+  async execute(request: CreateTenantRequest): Promise<CreateTenantResponse> {
     // 1. 验证输入参数
-    await this.validateCommand(command);
+    await this.validateRequest(request);
 
     // 2. 检查业务规则
-    await this.checkBusinessRules(command);
+    await this.checkBusinessRules(request);
 
     // 3. 创建租户聚合根
     const tenant = Tenant.create(
-      new TenantId(command.tenantId),
-      new TenantName(command.tenantName),
-      new TenantCode(command.tenantCode),
-      new UserId(command.adminId)
+      new TenantId(request.tenantId),
+      new TenantName(request.tenantName),
+      new TenantCode(request.tenantCode),
+      new UserId(request.adminId)
     );
 
     // 4. 保存租户
@@ -1523,15 +1706,62 @@ export class CreateTenantUseCase {
     await this.eventBus.publish(new TenantCreatedEvent(tenant));
 
     // 6. 返回结果
-    return new CreateTenantResult(tenant.id.value);
+    return new CreateTenantResponse(tenant.id.value);
   }
 
-  private async validateCommand(command: CreateTenantCommand): Promise<void> {
+  private async validateRequest(request: CreateTenantRequest): Promise<void> {
     // 验证逻辑
   }
 
-  private async checkBusinessRules(command: CreateTenantCommand): Promise<void> {
+  private async checkBusinessRules(request: CreateTenantRequest): Promise<void> {
     // 业务规则检查
+  }
+}
+```
+
+**用户登录用例**：
+```typescript
+@Injectable()
+export class LoginUseCase implements IUseCase<LoginRequest, LoginResponse> {
+  constructor(
+    private readonly userRepository: IUserRepository,
+    private readonly passwordService: IPasswordService,
+    private readonly tokenService: ITokenService,
+    private readonly sessionRepository: ISessionRepository,
+    private readonly auditService: IAuditService
+  ) {}
+
+  async execute(request: LoginRequest): Promise<LoginResponse> {
+    // 1. 验证输入数据
+    this.validateRequest(request);
+    
+    // 2. 查找用户
+    const user = await this.findUser(request.usernameOrEmail, request.tenantId);
+    
+    // 3. 验证密码
+    await this.validatePassword(request.password, user.password);
+    
+    // 4. 验证MFA（如果需要）
+    if (request.mfaCode) {
+      await this.validateMfa(user.id, request.mfaCode);
+    }
+    
+    // 5. 创建会话
+    const session = await this.createUserSession(user.id, request);
+    
+    // 6. 生成令牌
+    const tokens = await this.generateTokens(user, session.id);
+    
+    // 7. 记录审计日志
+    await this.auditService.logLoginSuccess(user.id);
+    
+    // 8. 返回登录结果
+    return new LoginResponse({
+      user: user.toDto(),
+      tokens,
+      session,
+      success: true
+    });
   }
 }
 ```
@@ -1539,34 +1769,51 @@ export class CreateTenantUseCase {
 **获取用户权限用例**：
 ```typescript
 @Injectable()
-export class GetUserPermissionsUseCase {
+export class GetUserPermissionsUseCase implements IUseCase<GetUserPermissionsRequest, GetUserPermissionsResponse> {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly permissionService: IPermissionService,
     private readonly cacheService: ICacheService
   ) {}
 
-  async execute(query: GetUserPermissionsQuery): Promise<UserPermissionsDto> {
-    // 1. 尝试从缓存获取
-    const cacheKey = `user:permissions:${query.userId}:${query.tenantId}`;
+  async execute(request: GetUserPermissionsRequest): Promise<GetUserPermissionsResponse> {
+    // 1. 验证请求参数
+    this.validateRequest(request);
+
+    // 2. 尝试从缓存获取
+    const cacheKey = `user:permissions:${request.userId}:${request.tenantId}`;
     let permissions = await this.cacheService.get(cacheKey);
 
     if (!permissions) {
-      // 2. 获取用户信息
-      const user = await this.userRepository.findById(new UserId(query.userId));
+      // 3. 获取用户信息
+      const user = await this.userRepository.findById(new UserId(request.userId));
       if (!user) {
-        throw new UserNotFoundException(query.userId);
+        throw new UserNotFoundException(request.userId);
       }
 
-      // 3. 计算用户权限
+      // 4. 计算用户权限
       permissions = await this.permissionService.calculateUserPermissions(user);
 
-      // 4. 缓存结果
+      // 5. 缓存结果
       await this.cacheService.set(cacheKey, permissions, 300);
     }
 
-    // 5. 返回权限信息
-    return UserPermissionsDto.fromDomain(permissions);
+    // 6. 返回权限信息
+    return new GetUserPermissionsResponse({
+      userId: request.userId,
+      tenantId: request.tenantId,
+      permissions: permissions.map(p => p.toDto()),
+      cached: !!permissions
+    });
+  }
+
+  private validateRequest(request: GetUserPermissionsRequest): void {
+    if (!request.userId) {
+      throw new ValidationException('用户ID不能为空');
+    }
+    if (!request.tenantId) {
+      throw new ValidationException('租户ID不能为空');
+    }
   }
 }
 ```
@@ -1577,16 +1824,71 @@ export class GetUserPermissionsUseCase {
 - 测试Use Case的业务逻辑
 - 模拟依赖的服务和仓储
 - 验证输入输出和异常处理
+- 测试Use Case的完整性和一致性
 
 **集成测试**：
 - 测试Use Case与领域层的集成
 - 验证事务边界和事件发布
 - 测试缓存和性能优化
+- 测试Use Case与CQRS的集成
 
 **端到端测试**：
 - 测试完整的业务流程
 - 验证Use Case在真实环境中的表现
 - 测试性能和并发处理
+- 测试Use Case与表现层的集成
+
+#### 7.5.7 应用服务与Use Cases的协作
+
+**应用服务设计**：
+```typescript
+@Injectable()
+export class AuthApplicationService implements IAuthApplicationService {
+  constructor(
+    private readonly loginUseCase: ILoginUseCase,
+    private readonly logoutUseCase: ILogoutUseCase,
+    private readonly refreshTokenUseCase: IRefreshTokenUseCase,
+    private readonly validateTokenUseCase: IValidateTokenUseCase,
+  ) {}
+
+  async login(usernameOrEmail: string, password: string, rememberMe?: boolean): Promise<LoginResponseDto> {
+    const request = new LoginRequestDto({
+      usernameOrEmail,
+      password,
+      rememberMe,
+    });
+    return await this.loginUseCase.execute(request);
+  }
+
+  async logout(userId: string, sessionId?: string): Promise<LogoutResponseDto> {
+    const request = new LogoutRequestDto({
+      userId,
+      sessionId,
+    });
+    return await this.logoutUseCase.execute(request);
+  }
+
+  async refreshToken(refreshToken: string): Promise<RefreshTokenResponseDto> {
+    const request = new RefreshTokenRequestDto({
+      refreshToken,
+    });
+    return await this.refreshTokenUseCase.execute(request);
+  }
+
+  async validateToken(accessToken: string): Promise<ValidateTokenResponseDto> {
+    const request = new ValidateTokenRequestDto({
+      accessToken,
+    });
+    return await this.validateTokenUseCase.execute(request);
+  }
+}
+```
+
+**Use Cases与CQRS的集成**：
+- Use Cases可以内部使用CQRS模式
+- 复杂的Use Case可以分解为多个命令和查询
+- 简单的Use Case可以直接调用领域服务
+- 保持Use Cases的单一职责和业务完整性
 
 ### 4.6 请求追踪与租户上下文架构 (Request Tracing & Tenant Context Architecture)
 

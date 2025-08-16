@@ -1,0 +1,68 @@
+---
+description: Development Todo Execution Rule - 开发任务清单执行规则
+globs:
+  - "**/development-todo-list.md"
+  - "**/docs/development-todo-list.md"
+  - "**/docs/development/**/*.md"
+alwaysApply: true
+---
+# 开发任务清单执行规则
+
+
+## 📋 执行流程
+
+### 1. 前置检查
+在执行任何开发任务之前，必须：
+1. 读取 `.cursor/rules/remarks.mdc` 文件
+2. 理解并遵循其中的所有规则
+
+### 2. 任务执行特殊要求
+- **技术栈**: 基于NestJS框架开发，使用Fastify平台
+- **日志系统**: 优先使用自定义的PinoLoggerService
+- **测试规范**: 单元测试放在同级目录，集成测试放在test目录
+- **ID生成**: 全局统一使用uuidv4
+- **文件创建**: 采取分段创建策略，避免工具调用超时导致创建失败
+- **代码质量**: 编写完成后及时检查报错
+
+
+
+## 🔧 任务执行步骤
+
+### 步骤1: 读取规则文件
+```typescript
+// 在执行任务前，必须读取remarks.mdc
+read_file({
+  target_file: ".cursor/rules/remarks.mdc",
+  should_read_entire_file: true
+})
+```
+
+
+### 步骤2: 执行具体任务
+- 按照任务清单中的要求执行
+- 遵循remarks.mdc中的规则
+- 使用正确的技术栈和工具
+- 确保代码质量和测试覆盖
+
+### 步骤3: 质量检查
+- 运行单元测试
+- 检查代码规范
+- 验证功能正确性
+- 更新任务状态
+
+## ⚠️ 注意事项
+
+- 每个任务执行前都必须重新读取remarks.mdc
+- 严格遵循技术栈要求
+- 确保测试文件位置正确
+- 使用分段创建策略避免超时
+- 及时检查代码报错
+
+## 📝 任务状态更新
+
+执行任务后必须：
+1. 更新任务清单中的状态
+2. 记录执行时间和结果
+3. 更新进度跟踪信息
+4. 记录遇到的问题和解决方案
+

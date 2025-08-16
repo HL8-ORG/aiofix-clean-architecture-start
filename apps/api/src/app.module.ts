@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ContextModule } from './shared/infrastructure/context/context.module';
+import { UserManagementPresentationModule } from './modules/users/management/presentation/presentation.module';
+import { AuthPresentationModule } from './modules/auth/login/presentation/presentation.module';
+import { TenantManagementPresentationModule } from './modules/tenants/management/presentation/presentation.module';
 
 /**
  * @class AppModule
@@ -19,7 +22,12 @@ import { ContextModule } from './shared/infrastructure/context/context.module';
  * - imports: 导入其他模块
  */
 @Module({
-  imports: [ContextModule],
+  imports: [
+    ContextModule,
+    UserManagementPresentationModule,
+    AuthPresentationModule,
+    TenantManagementPresentationModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

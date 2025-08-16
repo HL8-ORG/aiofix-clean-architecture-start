@@ -1,3 +1,5 @@
+import { StringValueObject } from '@/shared/domain/value-objects/base.value-object';
+
 /**
  * @class ApplicationId
  * @description 申请ID值对象
@@ -7,19 +9,14 @@
  * - 相等性：通过值判断相等，而不是引用
  * - 自验证：在创建时验证值的有效性
  * - 无副作用：不包含业务逻辑
+ * 
+ * 主要原理与机制如下：
+ * 1. 继承StringValueObject基类，获得字符串值对象的通用功能
+ * 2. 实现自定义的验证逻辑，确保申请ID符合UUID格式
+ * 3. 提供工厂方法create，简化对象创建
+ * 4. 支持值对象的不可变性和相等性比较
  */
-export class ApplicationId {
-  private readonly _value: string;
-
-  /**
-   * @constructor
-   * @description 私有构造函数，通过工厂方法创建实例
-   * @param value 申请ID值
-   */
-  private constructor(value: string) {
-    this.validate(value);
-    this._value = value;
-  }
+export class ApplicationId extends StringValueObject {
 
   /**
    * @method create
@@ -32,12 +29,13 @@ export class ApplicationId {
   }
 
   /**
-   * @method validate
+   * @protected isValidValue
    * @description 验证申请ID的有效性
    * @param value 申请ID值
+   * @returns boolean 是否有效
    * @throws Error 当值无效时抛出异常
    */
-  private validate(value: string): void {
+  protected isValidValue(value: string): boolean {
     if (!value || value.trim().length === 0) {
       throw new Error('Application ID cannot be empty');
     }
@@ -51,34 +49,7 @@ export class ApplicationId {
     if (!uuidRegex.test(value)) {
       throw new Error('Application ID must be a valid UUID');
     }
-  }
 
-  /**
-   * @method equals
-   * @description 比较两个申请ID是否相等
-   * @param other 另一个申请ID
-   * @returns boolean
-   */
-  equals(other: ApplicationId): boolean {
-    if (!other) return false;
-    return this._value === other._value;
-  }
-
-  /**
-   * @method toString
-   * @description 转换为字符串
-   * @returns string
-   */
-  toString(): string {
-    return this._value;
-  }
-
-  /**
-   * @method value
-   * @description 获取申请ID值
-   * @returns string
-   */
-  get value(): string {
-    return this._value;
+    return true;
   }
 }

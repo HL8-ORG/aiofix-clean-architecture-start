@@ -38,7 +38,7 @@ export class UserRepository implements IUserRepository {
     const userEntity = this.userMapper.toEntity(user);
 
     // 检查是否存在未提交的事件
-    const uncommittedEvents = user.getUncommittedEvents();
+    const uncommittedEvents = user.uncommittedEvents;
     if (uncommittedEvents.length > 0) {
       // 保存事件到事件存储
       // 这里需要调用事件存储服务
@@ -267,18 +267,180 @@ export class UserRepository implements IUserRepository {
   }
 
   /**
+   * @method findActiveUsers
+   * @description 查找激活状态的用户列表
+   */
+  async findActiveUsers(tenantId?: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const where: any = { status: UserStatus.ACTIVE.value };
+    if (tenantId) {
+      where.tenantId = tenantId.value;
+    }
+
+    const userEntities = await this.em.find(UserEntity, where, { limit, offset, orderBy: { createdAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
+   * @method findPendingActivationUsers
+   * @description 查找待激活的用户列表
+   */
+  async findPendingActivationUsers(tenantId?: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const where: any = { status: UserStatus.PENDING_ACTIVATION.value };
+    if (tenantId) {
+      where.tenantId = tenantId.value;
+    }
+
+    const userEntities = await this.em.find(UserEntity, where, { limit, offset, orderBy: { createdAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
+   * @method findAll
+   * @description 查找所有用户
+   */
+  async findAll(tenantId?: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const where = tenantId ? { tenantId: tenantId.value } : {};
+    const userEntities = await this.em.find(UserEntity, where, { limit, offset, orderBy: { createdAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
+   * @method count
+   * @description 统计用户数量
+   */
+  async count(tenantId?: TenantId): Promise<number> {
+    const where = tenantId ? { tenantId: tenantId.value } : {};
+    return await this.em.count(UserEntity, where);
+  }
+
+  /**
+   * @method countByOrganization
+   * @description 根据组织统计用户数量
+   */
+  async countByOrganization(organizationId: string, tenantId: TenantId): Promise<number> {
+    return await this.em.count(UserEntity, {
+      tenantId: tenantId.value,
+      $or: [
+        { primaryOrganizationId: organizationId },
+        { organizations: { $like: `%${organizationId}%` } }
+      ]
+    });
+  }
+
+  /**
+   * @method countByRole
+   * @description 根据角色统计用户数量
+   */
+  async countByRole(roleId: string, tenantId: TenantId): Promise<number> {
+    return await this.em.count(UserEntity, {
+      tenantId: tenantId.value,
+      roles: { $like: `%${roleId}%` }
+    });
+  }
+
+  /**
+   * @method exists
+   * @description 检查用户是否存在
+   */
+  async exists(id: UserId): Promise<boolean> {
+    const count = await this.em.count(UserEntity, { id: id.value });
+    return count > 0;
+  }
+
+  /**
+   * @method search
+   * @description 搜索用户
+   */
+  async search(query: string, tenantId?: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const where: any = {
+      $or: [
+        { username: { $like: `%${query}%` } },
+        { email: { $like: `%${query}%` } },
+        { firstName: { $like: `%${query}%` } },
+        { lastName: { $like: `%${query}%` } }
+      ]
+    };
+    if (tenantId) {
+      where.tenantId = tenantId.value;
+    }
+
+    const userEntities = await this.em.find(UserEntity, where, { limit, offset, orderBy: { createdAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
+   * @method findUsersByLastLogin
+   * @description 根据最后登录时间查找用户
+   */
+  async findUsersByLastLogin(fromDate: Date, toDate: Date, tenantId?: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const where: any = {
+      lastLoginAt: { $gte: fromDate, $lte: toDate }
+    };
+    if (tenantId) {
+      where.tenantId = tenantId.value;
+    }
+
+    const userEntities = await this.em.find(UserEntity, where, { limit, offset, orderBy: { lastLoginAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
+   * @method findUsersByCreatedDate
+   * @description 根据创建时间查找用户
+   */
+  async findUsersByCreatedDate(fromDate: Date, toDate: Date, tenantId?: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const where: any = {
+      createdAt: { $gte: fromDate, $lte: toDate }
+    };
+    if (tenantId) {
+      where.tenantId = tenantId.value;
+    }
+
+    const userEntities = await this.em.find(UserEntity, where, { limit, offset, orderBy: { createdAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
+   * @method findMultiOrganizationUsers
+   * @description 查找多组织用户
+   */
+  async findMultiOrganizationUsers(tenantId: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const userEntities = await this.em.find(UserEntity, {
+      tenantId: tenantId.value,
+      $and: [
+        { organizations: { $ne: null } },
+        { organizations: { $ne: '' } }
+      ]
+    }, { limit, offset, orderBy: { createdAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
+   * @method findUsersWithoutPrimaryOrganization
+   * @description 查找没有主要组织的用户
+   */
+  async findUsersWithoutPrimaryOrganization(tenantId: TenantId, limit?: number, offset?: number): Promise<User[]> {
+    const userEntities = await this.em.find(UserEntity, {
+      tenantId: tenantId.value,
+      $or: [
+        { primaryOrganizationId: null },
+        { primaryOrganizationId: '' }
+      ]
+    }, { limit, offset, orderBy: { createdAt: 'DESC' } });
+    return this.userMapper.toDomainList(userEntities);
+  }
+
+  /**
    * @method healthCheck
    * @description 健康检查
    * @returns Promise<boolean>
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.em.findOne(UserEntity, {}, { limit: 1 });
+      await this.em.findOne(UserEntity, {});
       return true;
     } catch (error) {
       return false;
     }
   }
-
-
 }
